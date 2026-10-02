@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import sys
@@ -109,8 +110,29 @@ def build_site(reference_date: date | None = None) -> Path:
         raise RuntimeError(f"No FBS matchups found for the week of {reference_date.isoformat()}")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    versioned_assets = {}
+    for name in ("app.js", "styles.css"):
+        content = (SITE_DIR / name).read_bytes()
+        suffix = Path(name).suffix
+        stem = Path(name).stem
+        versioned_name = f"{stem}.{hashlib.sha256(content).hexdigest()[:12]}{suffix}"
+        versioned_assets[name] = (versioned_name, content)
+
     for source in SITE_DIR.iterdir():
-        if source.is_file():
+        if not source.is_file():
+            continue
+        if source.name in versioned_assets:
+            versioned_name, content = versioned_assets[source.name]
+            (OUTPUT_DIR / versioned_name).write_bytes(content)
+        elif source.name == "index.html":
+            html = source.read_text(encoding="utf-8")
+            for name, (versioned_name, _) in versioned_assets.items():
+                original_reference = f'"./{name}"'
+                if original_reference not in html:
+                    raise ValueError(f"Website index does not reference {name}")
+                html = html.replace(original_reference, f'"./{versioned_name}"')
+            (OUTPUT_DIR / source.name).write_text(html, encoding="utf-8")
+        else:
             shutil.copy2(source, OUTPUT_DIR / source.name)
     (OUTPUT_DIR / "data.json").write_text(
         json.dumps(payload, indent=2),
