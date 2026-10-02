@@ -2,6 +2,8 @@
 
 An open, readable weekly FBS score and spread dashboard. Team projections use current-season averages from TeamRankings; matchup schedules and sportsbook lines come from ESPN.
 
+**Live site:** [cfb-spread-predictions.dev](https://cfb-spread-predictions.dev/) · [Cloudflare Pages fallback](https://gridiron-spread-lab.pages.dev/)
+
 ## Run the command-line model
 
 ```powershell
@@ -41,7 +43,9 @@ The site is prepared for the registered domain `cfb-spread-predictions.dev`.
    - Build output directory: `dist`
    - Root directory: `/`
 3. Deploy the project. The published board reflects data fetched at build time; trigger a new deployment to refresh it.
-4. In the Pages project, select **Custom domains** → **Set up a domain** and enter `cfb-spread-predictions.dev`. Cloudflare can configure DNS automatically when the domain is active in the same account. For an apex/root domain, its nameservers must point to Cloudflare.
+4. The custom domain `cfb-spread-predictions.dev` is attached to the Pages project. Cloudflare can configure DNS automatically when the domain is active in the same account. For an apex/root domain, its nameservers must point to Cloudflare.
+
+The project is connected to GitHub; pushes to `main` trigger a Pages rebuild and refresh the weekly source data.
 
 Cloudflare's custom-domain flow and apex-domain requirements are documented in [Cloudflare Pages custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/). The Pages build command and output directory are configured as described in [Cloudflare Pages build configuration](https://developers.cloudflare.com/pages/configuration/build-configuration/).
 
