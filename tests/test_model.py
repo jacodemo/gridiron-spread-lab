@@ -13,6 +13,7 @@ from gridiron_spread.season_record import (
 from gridiron_spread import sources
 from gridiron_spread.sources import (
     _espn_odds,
+    _espn_market_lines,
     _read_team_stat,
     calculate_elo_ratings,
     completed_elo_games,
@@ -153,7 +154,9 @@ def _sportsline_html() -> str:
             "awayTeamId": 2,
             "scheduledTime": "2026-10-03T16:00:00Z",
             "sportsBookOdds": {
-                "consensus": {"spread": {"home": {"value": "+3.5"}}}
+                "fanduel": {"spread": {"home": {"value": "+3.5"}}},
+                "draftkings": {"spread": {"home": {"value": "+4"}}},
+                "consensus": {"spread": {"home": {"value": "+4.5"}}},
             },
         },
         "CompetitionDTOTeam:1": {"location": "Home"},
@@ -165,11 +168,38 @@ def _sportsline_html() -> str:
 
 def test_sportsline_parser_reads_consensus_home_spread():
     assert fetch_sportsline_spreads(_sportsline_html()) == {
-        ("home", "away", date(2026, 10, 3)): -3.5
+        ("home", "away", date(2026, 10, 3)): {
+            "FanDuel": 3.5,
+            "DraftKings": 4.0,
+            "SportsLine": 4.5,
+        }
     }
 
 
-def test_weekly_matchups_use_sportsline_only_when_espn_lines_are_missing(monkeypatch):
+def test_espn_odds_parser_keeps_each_provider_and_feed_line():
+    competition = {
+        "odds": [
+            {
+                "provider": {"name": "DraftKings"},
+                "spread": 4.5,
+                "homeTeamOdds": {"favorite": False},
+            },
+            {
+                "provider": {"name": "FanDuel"},
+                "spread": 3.5,
+                "homeTeamOdds": {"favorite": True},
+            },
+        ]
+    }
+
+    assert _espn_market_lines(competition) == {
+        "ESPN": 4.5,
+        "DraftKings": 4.5,
+        "FanDuel": -3.5,
+    }
+
+
+def test_weekly_matchups_collect_lines_from_each_available_source(monkeypatch):
     def event(event_id, home, away, odds):
         return {
             "id": event_id,
@@ -213,9 +243,18 @@ def test_weekly_matchups_use_sportsline_only_when_espn_lines_are_missing(monkeyp
     matchups = sources.fetch_weekly_matchups(date(2026, 10, 3))
 
     assert matchups[0].market_home_margin == -3.5
-    assert matchups[0].sportsbook == "SportsLine"
+    assert matchups[0].sportsbook == "FanDuel"
+    assert matchups[0].market_lines == {
+        "FanDuel": 3.5,
+        "DraftKings": 4.0,
+        "SportsLine": 4.5,
+    }
     assert matchups[1].market_home_margin == 4.5
     assert matchups[1].sportsbook == "FanDuel"
+    assert matchups[1].market_lines == {
+        "FanDuel": -4.5,
+        "ESPN": -4.5,
+    }
     assert matchups[2].market_home_margin is None
     assert matchups[2].sportsbook is None
 
@@ -240,6 +279,7 @@ def test_website_payload_serializes_projection_and_skipped_games():
         start_time=datetime(2026, 10, 3, tzinfo=timezone.utc),
         market_home_margin=3.5,
         sportsbook="FanDuel",
+        market_lines={"FanDuel": -3.5, "DraftKings": -4.0},
     )
     missing = Matchup(
         home_team="UAB",
@@ -270,6 +310,10 @@ def test_website_payload_serializes_projection_and_skipped_games():
     assert "away_points" not in payload["games"][0]
     assert "projected_home_margin" not in payload["games"][0]
     assert payload["games"][0]["sportsbook"] == "FanDuel"
+    assert payload["games"][0]["market_lines"] == {
+        "FanDuel": -3.5,
+        "DraftKings": -4.0,
+    }
     assert payload["games"][0]["home_elo"] == 1500
     assert payload["season_record"]["wins"] == 0
     assert payload["skipped"] == [

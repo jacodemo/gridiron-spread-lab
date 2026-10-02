@@ -62,6 +62,14 @@ def build_payload(
             )
             continue
 
+        market_lines = matchup.market_lines.copy()
+        if (
+            not market_lines
+            and matchup.market_home_margin is not None
+            and matchup.sportsbook is not None
+        ):
+            market_lines[matchup.sportsbook] = -matchup.market_home_margin
+
         projection = project_matchup(matchup, team_stats, elo_ratings)
         game = {
             "event_id": matchup.event_id,
@@ -80,6 +88,10 @@ def build_payload(
                 else None
             ),
             "sportsbook": matchup.sportsbook,
+            "market_lines": {
+                name: round(spread, 1)
+                for name, spread in market_lines.items()
+            },
             "home_elo": round(
                 (elo_ratings or {}).get(team_key(matchup.home_team), 1500.0), 1
             ),

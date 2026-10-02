@@ -74,12 +74,13 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
 .filter-button.is-active span { color: #647e45; }
 .sort-control { display: flex; align-items: center; gap: 8px; color: #92999e; font: 500 9px "DM Mono", monospace; letter-spacing: .07em; }
 .sort-control select { max-width: 125px; padding: 6px 22px 6px 7px; border: 0; color: #48525d; background: transparent; outline-color: #819d5c; cursor: pointer; font: 500 11px "DM Sans", sans-serif; }
-.board-columns { display: grid; grid-template-columns: minmax(250px, 1.6fr) minmax(170px, 1fr) minmax(170px, 1fr) minmax(130px, .8fr); gap: 16px; padding: 12px 17px; color: #929aa1; font: 500 9px "DM Mono", monospace; letter-spacing: .09em; }
+.board-scroll { overflow-x: auto; }
+.board-columns { display: grid; grid-template-columns: minmax(215px, 1.5fr) minmax(130px, .9fr) repeat(4, minmax(105px, .8fr)) minmax(110px, .75fr); gap: 12px; padding: 12px 17px; color: #929aa1; font: 500 9px "DM Mono", monospace; letter-spacing: .09em; }
 .board-columns span:nth-child(n+2) { padding-left: 7px; }
 .game-list { display: grid; gap: 9px; }
 .game-card { overflow: hidden; border: 1px solid #e7e8e4; border-radius: 8px; background: var(--white); transition: border-color .15s, transform .15s; }
 .game-card:hover { border-color: #cdd4c2; transform: translateY(-1px); }
-.game-primary { display: grid; grid-template-columns: minmax(250px, 1.6fr) minmax(170px, 1fr) minmax(170px, 1fr) minmax(130px, .8fr); gap: 16px; min-height: 91px; align-items: center; padding: 14px 17px; }
+.game-primary { display: grid; grid-template-columns: minmax(215px, 1.5fr) minmax(130px, .9fr) repeat(4, minmax(105px, .8fr)) minmax(110px, .75fr); gap: 12px; min-height: 91px; align-items: center; padding: 14px 17px; }
 .matchup { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
 .kickoff { margin-bottom: 2px; color: #8c949c; font: 10px "DM Mono", monospace; }
 .away-team, .home-team { display: flex; align-items: center; gap: 8px; overflow: hidden; max-width: 100%; color: #26354a; font: 600 13px "Manrope", sans-serif; }
@@ -89,6 +90,7 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
 .market-team { display: flex; align-items: center; gap: 7px; color: #354352; font: 500 11px "DM Sans", sans-serif; }
 .market-team b { color: var(--navy); font: 700 13px "DM Mono", monospace; }
 .market-book { color: #a0a6a9; font: 9px "DM Mono", monospace; }
+.provider-name { color: #899199; font: 500 8px "DM Mono", monospace; letter-spacing: .04em; }
 .market-unavailable { color: #a1a6aa; font-size: 10px; }
 .difference-cell { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding-left: 7px; }
 .difference-value { font: 700 18px "Manrope", sans-serif; letter-spacing: -.04em; }
@@ -170,8 +172,7 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
 @media (max-width: 900px) {
   main { padding: 0 24px; }
   .hero-stamp { right: 235px; opacity: .65; }
-  .board-columns { grid-template-columns: minmax(190px, 1.35fr) minmax(145px, 1fr) minmax(145px, 1fr) minmax(100px, .75fr); gap: 9px; padding-right: 12px; padding-left: 12px; }
-  .game-primary { grid-template-columns: minmax(190px, 1.35fr) minmax(145px, 1fr) minmax(145px, 1fr) minmax(100px, .75fr); gap: 9px; padding-right: 12px; padding-left: 12px; }
+  .board-columns, .game-primary { min-width: 1010px; }
   .method-section { grid-template-columns: .75fr 1.35fr; gap: 32px; }
   .record-table { min-width: 620px; }
 }
@@ -206,11 +207,16 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
   .sort-control { align-self: flex-end; }
   .board-columns { display: none; }
   .game-list { gap: 8px; }
-  .game-primary { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 8px; min-height: 0; padding: 13px 13px 11px; }
+  .board-scroll { overflow: visible; }
+  .game-primary { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 8px; min-width: 0; min-height: 0; padding: 13px 13px 11px; }
   .matchup { grid-column: 1; grid-row: 1; }
   .predicted-spread { grid-column: 2; grid-row: 1; align-items: flex-end; padding: 0; }
-  .market-cell { grid-column: 1; grid-row: 2; padding: 8px 0 0; border-top: 1px solid #f0f0ed; }
-  .difference-cell { grid-column: 2; grid-row: 2; align-items: flex-end; padding: 8px 0 0; border-top: 1px solid #f0f0ed; }
+  .market-cell { padding: 8px 0 0; border-top: 1px solid #f0f0ed; }
+  .provider-fanduel { grid-column: 1; grid-row: 2; }
+  .provider-draftkings { grid-column: 2; grid-row: 2; align-items: flex-end; }
+  .provider-espn { grid-column: 1; grid-row: 3; }
+  .provider-sportsline { grid-column: 2; grid-row: 3; align-items: flex-end; }
+  .difference-cell { grid-column: 1 / -1; grid-row: 4; align-items: flex-start; padding: 8px 0 0; border-top: 1px solid #f0f0ed; }
   .team-math { grid-template-columns: 1fr; gap: 8px; padding: 3px 11px 11px; }
   .game-details summary { padding-right: 13px; padding-left: 13px; }
   .method-section { grid-template-columns: 1fr; gap: 22px; margin-top: 59px; padding: 36px 0; }

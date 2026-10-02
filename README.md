@@ -1,6 +1,6 @@
 # Gridiron Spread Lab
 
-An open, readable weekly FBS predicted-spread dashboard with an Elo-adjusted model, scheduled sportsbook updates, recommended spread picks, and a season results ledger.
+An open, readable weekly FBS predicted-spread dashboard with an Elo-adjusted model, multiple sportsbook-line sources, recommended spread picks, and a season results ledger.
 
 **Live site:** [cfb-spread-predictions.dev](https://cfb-spread-predictions.dev/) · [Cloudflare Pages fallback](https://gridiron-spread-lab.pages.dev/)
 
@@ -67,7 +67,7 @@ The model uses these TeamRankings season columns:
 - `opponent-plays-per-game`
 - `opponent-points-per-play`
 
-The current week's FBS schedule and completed game results come from ESPN's public scoreboard feed. Market lines prefer FanDuel, then DraftKings, and use SportsLine's consensus spread when neither ESPN line is available. Each line is labeled with its source; unavailable lines are reported explicitly. The difference is the sportsbook home spread minus the predicted home spread: a positive value favors the home side, while a negative value favors the away side. A recommendation is shown when the difference is at least three points in absolute value and a sportsbook spread is available. The season record saves one latest qualifying recommendation per game before kickoff and grades it against the saved line as a win, loss, or push. It is an informational model record, not a guarantee or betting advice.
+The current week's FBS schedule, game results, and ESPN-feed lines come from ESPN's public scoreboard feed. The board displays FanDuel and DraftKings lines from ESPN and SportsLine data, the ESPN feed's listed line, and SportsLine consensus independently whenever each is available. The recommendation and tracked result use one available line in this order: FanDuel, DraftKings, ESPN feed, then SportsLine consensus. Missing lines are shown per source instead of hiding the other sources' available lines. The difference is the selected market's home spread minus the predicted home spread: a positive value favors the home side, while a negative value favors the away side. A recommendation is shown when the difference is at least three points in absolute value and a sportsbook spread is available. The season record saves one latest qualifying recommendation per game before kickoff and grades it against the saved line as a win, loss, or push. It is an informational model record, not a guarantee or betting advice.
 
 All inputs are live external data. A missing or changed source table raises an error instead of silently substituting sample values.
 
@@ -76,6 +76,6 @@ All inputs are live external data. A missing or changed source table raises an e
 - Search teams and filter to games with a market line or a spread difference of at least three points.
 - Sort by kickoff, home team, or absolute spread difference.
 - See qualifying recommended bets and expand each game to inspect the TeamRankings averages and Elo ratings behind its predicted spread.
-- See the source for each line; FanDuel and DraftKings are preferred, with SportsLine as the fallback.
+- Compare FanDuel, DraftKings, the ESPN feed line, and SportsLine consensus independently when available.
 - Follow the season's recommended-bet W–L–P record and final results.
 - View mobile-friendly matchup cards and a plain-language explanation of the model.

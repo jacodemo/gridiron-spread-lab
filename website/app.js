@@ -76,7 +76,14 @@ function renderGame(game) {
     : game.market_home_spread - game.predicted_home_spread;
   const differenceLabel = difference === null
     ? '<span class="difference-value difference-missing">—</span><span class="difference-hint">No sportsbook line</span>'
-    : `<span class="difference-value ${differenceClass(difference)}">${signed(difference)}</span><span class="difference-hint">pts toward ${difference >= 0 ? "home" : "away"}</span>`;
+    : `<span class="difference-value ${differenceClass(difference)}">${signed(difference)}</span><span class="difference-hint">pts vs ${escapeHtml(game.sportsbook || "market")}</span>`;
+  const lineCell = (provider) => {
+    const line = game.market_lines?.[provider];
+    return `<div class="spread-cell market-cell provider-${provider.toLowerCase()}">
+      <span class="provider-name">${provider === "ESPN" ? "ESPN feed" : escapeHtml(provider)}</span>
+      ${line === undefined ? '<span class="market-unavailable">—</span>' : spreadLabel(game.home_team, game.away_team, line)}
+    </div>`;
+  };
   const recommendation = game.recommendation
     ? `<div class="recommended-bet"><span>RECOMMENDED BET</span><strong>${escapeHtml(game.recommendation.team)} ${game.recommendation.spread === 0 ? "Pick’em" : signed(game.recommendation.spread)}</strong><small>${escapeHtml(game.recommendation.sportsbook || "Sportsbook")} · ${signed(game.recommendation.difference)}-point model gap</small></div>`
     : "";
@@ -91,9 +98,10 @@ function renderGame(game) {
         <div class="spread-cell predicted-spread">
           ${spreadLabel(game.home_team, game.away_team, game.predicted_home_spread)}
         </div>
-        <div class="spread-cell market-cell">
-          ${spreadLabel(game.home_team, game.away_team, game.market_home_spread, game.sportsbook)}
-        </div>
+        ${lineCell("FanDuel")}
+        ${lineCell("DraftKings")}
+        ${lineCell("ESPN")}
+        ${lineCell("SportsLine")}
         <div class="difference-cell">${differenceLabel}</div>
       </div>
       ${recommendation}
@@ -144,6 +152,10 @@ function renderGames() {
 
 function updateSummary(data) {
   const lined = games.filter((game) => game.market_home_spread !== null && game.market_home_spread !== undefined);
+  const lineCount = games.reduce(
+    (total, game) => total + Object.keys(game.market_lines || {}).length,
+    0,
+  );
   const biggest = lined.reduce((best, game) => {
     const difference = game.market_home_spread - game.predicted_home_spread;
     return Math.abs(difference) > Math.abs(best.difference) ? { difference, game } : best;
@@ -152,7 +164,7 @@ function updateSummary(data) {
   document.querySelector("#season-label").textContent = `${data.season} SEASON`;
   document.querySelector("#footer-season").textContent = `${data.season} FBS · DATA-DRIVEN, NOT GUARANTEED`;
   document.querySelector("#game-count").textContent = String(games.length).padStart(2, "0");
-  document.querySelector("#line-count").textContent = `${lined.length} / ${games.length}`;
+  document.querySelector("#line-count").textContent = String(lineCount);
   document.querySelector("#all-count").textContent = games.length;
   document.querySelector("#market-count").textContent = lined.length;
   document.querySelector("#edge-count").textContent = games.filter((game) => (

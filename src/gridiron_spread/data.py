@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 
@@ -65,6 +65,7 @@ class Matchup:
     market_home_margin: float | None
     sportsbook: str | None
     event_id: str | None = None
+    market_lines: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

@@ -48,9 +48,9 @@
           <span class="summary-note">with complete team stats</span>
         </article>
         <article class="summary-stat">
-          <span class="summary-label">MARKET LINES</span>
+          <span class="summary-label">BOOK LINES</span>
           <strong id="line-count">—</strong>
-          <span class="summary-note">posted by a listed sportsbook</span>
+          <span class="summary-note">across all listed sources</span>
         </article>
         <article class="summary-stat summary-stat-edge">
           <span class="summary-label">LARGEST SPREAD DIFFERENCE</span>
@@ -93,11 +93,13 @@
           </label>
         </div>
 
-        <div class="board-columns" aria-hidden="true">
-          <span>MATCHUP</span><span>PREDICTED SPREAD</span><span>SPORTSBOOK SPREAD</span><span>DIFFERENCE</span>
-        </div>
-        <div id="game-list" class="game-list" aria-live="polite" aria-busy="true">
-          <div class="loading-state"><span class="loader"></span><span>Loading this week’s matchups…</span></div>
+        <div class="board-scroll">
+          <div class="board-columns" aria-hidden="true">
+            <span>MATCHUP</span><span>PREDICTED</span><span>FANDUEL</span><span>DRAFTKINGS</span><span>ESPN FEED</span><span>SPORTSLINE</span><span>DIFFERENCE</span>
+          </div>
+          <div id="game-list" class="game-list" aria-live="polite" aria-busy="true">
+            <div class="loading-state"><span class="loader"></span><span>Loading this week’s matchups…</span></div>
+          </div>
         </div>
         <p id="empty-state" class="empty-state" hidden>No games match those filters. Try another team or filter.</p>
         <div id="skipped-notice" class="notice" hidden></div>
@@ -165,7 +167,7 @@
         <a href="https://www.teamrankings.com/college-football/" target="_blank" rel="noreferrer">TeamRankings stats <span aria-hidden="true">↗</span></a>
         <a href="https://www.espn.com/college-football/scoreboard" target="_blank" rel="noreferrer">ESPN schedule & lines <span aria-hidden="true">↗</span></a>
         <a href="https://www.sportsline.com/college-football/odds/" target="_blank" rel="noreferrer">SportsLine odds <span aria-hidden="true">↗</span></a>
-        <p>Lines prefer FanDuel, then DraftKings, then SportsLine.</p>
+        <p>Compare each available FanDuel, DraftKings, ESPN-feed, and SportsLine line.</p>
       </section>
     </main>
 
