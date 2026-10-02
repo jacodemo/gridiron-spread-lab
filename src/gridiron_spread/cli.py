@@ -1,0 +1,76 @@
+import argparse
+from datetime import date
+
+from .data import Matchup, team_key
+from .model import project_matchup
+from .sources import current_season_year, fetch_team_stats, fetch_weekly_matchups
+
+
+def _market_line(market_home_margin: float | None, sportsbook: str | None) -> str:
+    if market_home_margin is None:
+        return "unavailable"
+    line = -market_home_margin
+    return f"{sportsbook} home {line:+.1f}"
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Project this week's FBS matchups from TeamRankings team stats."
+    )
+    parser.add_argument(
+        "--date",
+        type=date.fromisoformat,
+        default=date.today(),
+        help="Any date in the target week (YYYY-MM-DD; defaults to today)",
+    )
+    args = parser.parse_args()
+
+    matchups = fetch_weekly_matchups(args.date)
+    if not matchups:
+        print(f"No FBS matchups found for the week containing {args.date.isoformat()}.")
+        return
+
+    team_stats = fetch_team_stats(current_season_year(args.date))
+    available_teams = {team_key(team) for team in team_stats}
+    forecastable: list[Matchup] = []
+    skipped: list[tuple[Matchup, list[str]]] = []
+    for matchup in matchups:
+        missing = [
+            team
+            for team in (matchup.home_team, matchup.away_team)
+            if team_key(team) not in available_teams
+        ]
+        if missing:
+            skipped.append((matchup, missing))
+        else:
+            forecastable.append(matchup)
+
+    for matchup, missing in skipped:
+        print(
+            f"Skipping {matchup.away_team} at {matchup.home_team}: "
+            f"TeamRankings stats unavailable for {', '.join(missing)}."
+        )
+    if not forecastable:
+        print("No matchups have complete TeamRankings statistics.")
+        return
+
+    print(f"Weekly FBS projections for the week containing {args.date.isoformat()}")
+    print(f"{'Matchup':48} {'Model score':19} {'Model margin':14} {'Market line':24} {'Edge':>8}")
+    for matchup in forecastable:
+        projection = project_matchup(matchup, team_stats)
+        score = f"{projection.home_points:.1f}-{projection.away_points:.1f}"
+        market_line = _market_line(matchup.market_home_margin, matchup.sportsbook)
+        edge = (
+            f"{projection.projected_home_margin - matchup.market_home_margin:+.1f}"
+            if matchup.market_home_margin is not None
+            else "n/a"
+        )
+        print(
+            f"{matchup.away_team + ' at ' + matchup.home_team:48} "
+            f"{score:19} {projection.projected_home_margin:+.1f} "
+            f"{market_line:24} {edge:>8}"
+        )
+
+
+if __name__ == "__main__":
+    main()
