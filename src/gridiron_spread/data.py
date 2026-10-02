@@ -64,6 +64,17 @@ class Matchup:
     start_time: datetime
     market_home_margin: float | None
     sportsbook: str | None
+    event_id: str | None = None
+
+
+@dataclass(frozen=True)
+class EloGame:
+    event_id: str
+    home_team: str
+    away_team: str
+    home_score: int
+    away_score: int
+    start_time: datetime
 
 
 @dataclass(frozen=True)
@@ -71,7 +82,9 @@ class Projection:
     matchup: Matchup
     home_points: float
     away_points: float
+    elo_home_margin: float = 0.0
 
     @property
     def projected_home_margin(self) -> float:
-        return self.home_points - self.away_points
+        points_per_play_margin = self.home_points - self.away_points
+        return (points_per_play_margin + self.elo_home_margin) / 2

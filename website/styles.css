@@ -97,6 +97,10 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
 .difference-neutral { color: var(--amber); }
 .difference-missing { color: #b5bab9; }
 .difference-hint { color: #939a9d; font-size: 9px; }
+.recommended-bet { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; padding: 10px 17px; border-top: 1px solid #edf0e7; background: #f7f9f2; }
+.recommended-bet > span { color: #6a844b; font: 500 8px "DM Mono", monospace; letter-spacing: .08em; }
+.recommended-bet strong { color: #354b2e; font: 700 12px "Manrope", sans-serif; }
+.recommended-bet small { color: #858f7b; font: 9px "DM Mono", monospace; }
 .game-details { border-top: 1px solid #f0f0ed; }
 .game-details summary { display: flex; justify-content: space-between; padding: 9px 17px; color: #848e8d; cursor: pointer; font-size: 10px; list-style: none; }
 .game-details summary::-webkit-details-marker { display: none; }
@@ -136,6 +140,21 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
 .positive-dot, .negative-dot { width: 6px; height: 6px; margin-left: 4px; border-radius: 50%; background: #45825b; }
 .negative-dot { background: #bf685a; }
 
+.record-section { margin: 74px 0 0; padding: 43px 0 49px; border-top: 1px solid var(--line); }
+.record-heading { align-items: center; }
+.record-summary { margin: 0; padding: 11px 15px; border-radius: 6px; background: var(--navy); color: var(--lime); font: 700 14px "DM Mono", monospace; }
+.record-note { margin: 13px 0 18px; color: #7d858c; font-size: 11px; line-height: 1.6; }
+.record-table-wrap { overflow-x: auto; border: 1px solid #e5e7e0; border-radius: 8px; background: white; }
+.record-table { width: 100%; border-collapse: collapse; text-align: left; }
+.record-table th { padding: 11px 14px; color: #929aa1; background: #f8f9f6; font: 500 8px "DM Mono", monospace; letter-spacing: .08em; }
+.record-table td { padding: 12px 14px; border-top: 1px solid #eff0ed; color: #354152; font-size: 10px; white-space: nowrap; }
+.record-table td:first-child { line-height: 1.6; }
+.record-table td:first-child span { color: #838d93; }
+.result-pending { color: #8b793c; }
+.result-win { color: #247244; font-weight: 700; }
+.result-loss { color: #b64c3e; font-weight: 700; }
+.result-push { color: #78818c; font-weight: 700; }
+
 .sources-row { display: flex; align-items: center; gap: 20px; min-height: 77px; }
 .sources-row > a { color: #53604b; font-size: 10px; font-weight: 600; text-decoration: none; }
 .sources-row > a:hover { text-decoration: underline; }
@@ -154,6 +173,7 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
   .board-columns { grid-template-columns: minmax(190px, 1.35fr) minmax(145px, 1fr) minmax(145px, 1fr) minmax(100px, .75fr); gap: 9px; padding-right: 12px; padding-left: 12px; }
   .game-primary { grid-template-columns: minmax(190px, 1.35fr) minmax(145px, 1fr) minmax(145px, 1fr) minmax(100px, .75fr); gap: 9px; padding-right: 12px; padding-left: 12px; }
   .method-section { grid-template-columns: .75fr 1.35fr; gap: 32px; }
+  .record-table { min-width: 620px; }
 }
 @media (max-width: 680px) {
   .topbar { height: 62px; padding: 0 18px; }
@@ -194,6 +214,10 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
   .team-math { grid-template-columns: 1fr; gap: 8px; padding: 3px 11px 11px; }
   .game-details summary { padding-right: 13px; padding-left: 13px; }
   .method-section { grid-template-columns: 1fr; gap: 22px; margin-top: 59px; padding: 36px 0; }
+  .record-section { margin-top: 51px; padding: 33px 0 37px; }
+  .record-heading { align-items: flex-start; flex-direction: column; gap: 13px; }
+  .record-summary { font-size: 12px; }
+  .record-table { min-width: 570px; }
   .formula-step { grid-template-columns: 26px 1fr 29px; gap: 8px; padding: 11px 13px; }
   .formula-step p { line-height: 1.5; }
   .method-footer { gap: 8px; padding: 12px 13px; }

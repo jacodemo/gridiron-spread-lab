@@ -31,7 +31,7 @@
         <div class="hero-copy">
           <p class="eyebrow">THE WEEKLY BOARD <span class="eyebrow-rule"></span></p>
           <h1>Find your<br><span>game-day edge.</span></h1>
-          <p class="hero-description">Compare the model’s predicted spread with the sportsbook line for every matchup.</p>
+          <p class="hero-description">Compare Elo-enhanced predicted spreads with current sportsbook lines and see qualifying model-backed picks.</p>
         </div>
         <div class="week-card">
           <span class="week-card-label">CURRENT SLATE</span>
@@ -107,7 +107,7 @@
         <div class="method-heading">
           <p class="eyebrow section-kicker">OPEN BOOK MODEL</p>
           <h2 id="method-title">No black box.<br><span>Just the math.</span></h2>
-          <p>Every projection starts with the same four season averages. No rankings or subjective power ratings added.</p>
+          <p>Four season averages are blended with Elo ratings built from completed FBS results.</p>
         </div>
         <div class="formula-card">
           <div class="formula-step">
@@ -125,11 +125,38 @@
             <div><strong>Team scoring estimate</strong><p>Average of the team’s pace and its opponent’s pace allowed</p></div>
             <span class="formula-sign">÷ 2</span>
           </div>
-          <div class="method-footer">
-            <span>SPREAD DIFFERENCE</span>
-            <strong>Sportsbook home spread − predicted home spread</strong>
-            <span class="edge-key"><i class="positive-dot"></i> Positive favors home <i class="negative-dot"></i> Negative favors away</span>
+          <div class="formula-step">
+            <span class="step-index">04</span>
+            <div><strong>Elo margin</strong><p>(Home Elo − away Elo) ÷ 25; ratings start at 1500 and update from completed FBS results (K = 20)</p></div>
+            <span class="formula-sign">÷ 25</span>
           </div>
+          <div class="formula-step formula-result">
+            <span class="step-index">05</span>
+            <div><strong>Predicted margin</strong><p>Average of the points-per-play margin and Elo margin</p></div>
+            <span class="formula-sign">÷ 2</span>
+          </div>
+          <div class="method-footer">
+            <span>BET SIGNAL</span>
+            <strong>Recommend a side when the predicted spread differs from the listed line by 3+ points</strong>
+            <span class="edge-key">Selections use the displayed sportsbook line; records are informational, not betting advice.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="record-section" aria-labelledby="record-title">
+        <div class="section-heading record-heading">
+          <div>
+            <p class="eyebrow section-kicker">SEASON TRACKER</p>
+            <h2 id="record-title">Recommended bets<span class="heading-period">.</span></h2>
+          </div>
+          <p class="record-summary" id="record-summary">W–L–P: 0–0–0</p>
+        </div>
+        <p class="record-note">One latest qualifying pick per game, captured before kickoff. Final scores grade the spread; pushes are tracked separately.</p>
+        <div class="record-table-wrap">
+          <table class="record-table">
+            <thead><tr><th>GAME</th><th>PICK</th><th>LINE</th><th>BOOK</th><th>RESULT</th></tr></thead>
+            <tbody id="record-list"><tr><td colspan="5">No qualifying recommendations recorded yet.</td></tr></tbody>
+          </table>
         </div>
       </section>
 

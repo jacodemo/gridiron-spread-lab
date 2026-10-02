@@ -3,7 +3,12 @@ from datetime import date
 
 from .data import Matchup, team_key
 from .model import project_matchup
-from .sources import current_season_year, fetch_team_stats, fetch_weekly_matchups
+from .sources import (
+    current_season_year,
+    fetch_season_elo_ratings,
+    fetch_team_stats,
+    fetch_weekly_matchups,
+)
 
 
 def _market_line(market_home_margin: float | None, sportsbook: str | None) -> str:
@@ -15,7 +20,7 @@ def _market_line(market_home_margin: float | None, sportsbook: str | None) -> st
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Project this week's FBS matchups from TeamRankings team stats."
+        description="Project this week's FBS matchups from TeamRankings stats and Elo."
     )
     parser.add_argument(
         "--date",
@@ -31,6 +36,10 @@ def main() -> None:
         return
 
     team_stats = fetch_team_stats(current_season_year(args.date))
+    elo_ratings = fetch_season_elo_ratings(
+        current_season_year(args.date),
+        args.date,
+    )
     available_teams = {team_key(team) for team in team_stats}
     forecastable: list[Matchup] = []
     skipped: list[tuple[Matchup, list[str]]] = []
@@ -57,7 +66,7 @@ def main() -> None:
     print(f"Weekly FBS projections for the week containing {args.date.isoformat()}")
     print(f"{'Matchup':48} {'Model score':19} {'Model margin':14} {'Market line':24} {'Edge':>8}")
     for matchup in forecastable:
-        projection = project_matchup(matchup, team_stats)
+        projection = project_matchup(matchup, team_stats, elo_ratings)
         score = f"{projection.home_points:.1f}-{projection.away_points:.1f}"
         market_line = _market_line(matchup.market_home_margin, matchup.sportsbook)
         edge = (

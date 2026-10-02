@@ -77,6 +77,9 @@ function renderGame(game) {
   const differenceLabel = difference === null
     ? '<span class="difference-value difference-missing">—</span><span class="difference-hint">No sportsbook line</span>'
     : `<span class="difference-value ${differenceClass(difference)}">${signed(difference)}</span><span class="difference-hint">pts toward ${difference >= 0 ? "home" : "away"}</span>`;
+  const recommendation = game.recommendation
+    ? `<div class="recommended-bet"><span>RECOMMENDED BET</span><strong>${escapeHtml(game.recommendation.team)} ${game.recommendation.spread === 0 ? "Pick’em" : signed(game.recommendation.spread)}</strong><small>${escapeHtml(game.recommendation.sportsbook || "Sportsbook")} · ${signed(game.recommendation.difference)}-point model gap</small></div>`
+    : "";
   return `
     <article class="game-card">
       <div class="game-primary">
@@ -93,11 +96,12 @@ function renderGame(game) {
         </div>
         <div class="difference-cell">${differenceLabel}</div>
       </div>
+      ${recommendation}
       <details class="game-details">
         <summary>How we got the predicted spread <span aria-hidden="true">＋</span></summary>
         <div class="team-math">
-          <div><strong>${awayTeam}</strong><span>Offense ${formatNumber(game.away_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.away_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.home_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.home_stats.opponent_plays_per_game)} plays</span></div>
-          <div><strong>${homeTeam}</strong><span>Offense ${formatNumber(game.home_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.home_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.away_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.away_stats.opponent_plays_per_game)} plays</span></div>
+          <div><strong>${awayTeam}</strong><span>Offense ${formatNumber(game.away_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.away_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.home_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.home_stats.opponent_plays_per_game)} plays</span><span>Elo rating ${formatNumber(game.away_elo)} vs ${formatNumber(game.home_elo)}</span></div>
+          <div><strong>${homeTeam}</strong><span>Offense ${formatNumber(game.home_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.home_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.away_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.away_stats.opponent_plays_per_game)} plays</span><span>Elo rating ${formatNumber(game.home_elo)} vs ${formatNumber(game.away_elo)}</span></div>
         </div>
       </details>
     </article>`;
@@ -167,6 +171,28 @@ function updateSummary(data) {
     notice.textContent = `${data.skipped.length} matchup${data.skipped.length === 1 ? "" : "s"} omitted: ${missing.join("; ")}. TeamRankings stats were not available for every team.`;
     notice.hidden = false;
   }
+  renderSeasonRecord(data.season_record);
+}
+
+function renderSeasonRecord(record) {
+  document.querySelector("#record-summary").textContent =
+    `W–L–P: ${record.wins}–${record.losses}–${record.pushes} · ${record.pending} pending`;
+  const rows = record.recommendations.map((pick) => {
+    const kickoff = formatKickoff(pick.start_time);
+    const finalScore = pick.final_home_score === null
+      ? ""
+      : ` · ${pick.final_away_score}–${pick.final_home_score}`;
+    return `<tr>
+      <td>${escapeHtml(kickoff)}<br><span>${escapeHtml(pick.away_team)} at ${escapeHtml(pick.home_team)}</span></td>
+      <td>${escapeHtml(pick.team)}</td>
+      <td>${pick.spread === 0 ? "Pick’em" : signed(pick.spread)}</td>
+      <td>${escapeHtml(pick.sportsbook || "—")}</td>
+      <td><span class="result-${escapeHtml(pick.status)}">${escapeHtml(pick.status)}${escapeHtml(finalScore)}</span></td>
+    </tr>`;
+  });
+  document.querySelector("#record-list").innerHTML = rows.length
+    ? rows.join("")
+    : '<tr><td colspan="5">No qualifying recommendations recorded yet.</td></tr>';
 }
 
 async function loadBoard() {

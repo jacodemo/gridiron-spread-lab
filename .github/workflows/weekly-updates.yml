@@ -1,0 +1,64 @@
+name: Refresh spreads and grade recommendations
+
+on:
+  schedule:
+    # Both UTC hours are listed; the updater selects the run that falls at 8 a.m. Central.
+    - cron: "0 13 * * 3,5"
+    - cron: "0 14 * * 3,5"
+    # Monday UTC is Sunday evening in Central; the updater handles DST.
+    - cron: "0 4,5 * * 1"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Refresh weekly lines or grade final results
+        required: true
+        type: choice
+        options:
+          - refresh
+          - grade
+
+permissions:
+  contents: write
+
+concurrency:
+  group: season-data-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install project and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -e .
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Update the season data
+        env:
+          WORKFLOW_EVENT: ${{ github.event_name }}
+          REQUESTED_MODE: ${{ inputs.mode }}
+        run: |
+          if [ "$WORKFLOW_EVENT" = "workflow_dispatch" ]; then
+            python scripts/update_season.py --mode "$REQUESTED_MODE"
+          else
+            python scripts/update_season.py --mode scheduled
+          fi
+      - name: Commit refreshed ratings and bet record
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/season_record.json
+          if git diff --cached --quiet; then
+            echo "No season data changes to commit."
+          else
+            git commit -m "Refresh weekly spreads and season record"
+            git push origin main
+          fi

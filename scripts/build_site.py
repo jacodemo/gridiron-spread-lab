@@ -11,11 +11,22 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gridiron_spread.data import Matchup, TeamStats, team_key
-from gridiron_spread.model import project_matchup
-from gridiron_spread.sources import current_season_year, fetch_team_stats, fetch_weekly_matchups
+from gridiron_spread.model import ELO_POINTS_PER_RATING, project_matchup
+from gridiron_spread.season_record import (
+    empty_season_state,
+    recommended_bet,
+    season_record_summary,
+)
+from gridiron_spread.sources import (
+    current_season_year,
+    fetch_season_elo_ratings,
+    fetch_team_stats,
+    fetch_weekly_matchups,
+)
 
 SITE_DIR = ROOT / "website"
 OUTPUT_DIR = ROOT / "dist"
+SEASON_STATE_PATH = ROOT / "data" / "season_record.json"
 
 
 def build_payload(
@@ -23,6 +34,8 @@ def build_payload(
     generated_at: datetime,
     matchups: list[Matchup],
     team_stats: dict[str, TeamStats],
+    elo_ratings: dict[str, float] | None = None,
+    season_state: dict[str, object] | None = None,
 ) -> dict[str, object]:
     stats_by_key = {team_key(name): stats for name, stats in team_stats.items()}
     games: list[dict[str, object]] = []
@@ -49,43 +62,64 @@ def build_payload(
             )
             continue
 
-        projection = project_matchup(matchup, team_stats)
-        games.append(
-            {
-                "home_team": matchup.home_team,
-                "away_team": matchup.away_team,
-                "start_time": matchup.start_time.isoformat(),
-                "predicted_home_spread": round(-projection.projected_home_margin, 1),
-                "market_home_spread": (
-                    round(-matchup.market_home_margin, 1)
-                    if matchup.market_home_margin is not None
-                    else None
-                ),
-                "sportsbook": matchup.sportsbook,
-                "home_stats": {
-                    "offensive_points_per_play": home_stats.offensive_points_per_play,
-                    "offensive_plays_per_game": home_stats.offensive_plays_per_game,
-                    "opponent_points_per_play": home_stats.opponent_points_per_play,
-                    "opponent_plays_per_game": home_stats.opponent_plays_per_game,
-                },
-                "away_stats": {
-                    "offensive_points_per_play": away_stats.offensive_points_per_play,
-                    "offensive_plays_per_game": away_stats.offensive_plays_per_game,
-                    "opponent_points_per_play": away_stats.opponent_points_per_play,
-                    "opponent_plays_per_game": away_stats.opponent_plays_per_game,
-                },
-            }
+        projection = project_matchup(matchup, team_stats, elo_ratings)
+        game = {
+            "event_id": matchup.event_id,
+            "home_team": matchup.home_team,
+            "away_team": matchup.away_team,
+            "start_time": matchup.start_time.isoformat(),
+            "predicted_home_spread": round(-projection.projected_home_margin, 1),
+            "points_per_play_home_spread": round(
+                -(projection.home_points - projection.away_points), 1
+            ),
+            "elo_home_spread": round(-projection.elo_home_margin, 1),
+            "elo_rating_points_per_spread_point": ELO_POINTS_PER_RATING,
+            "market_home_spread": (
+                round(-matchup.market_home_margin, 1)
+                if matchup.market_home_margin is not None
+                else None
+            ),
+            "sportsbook": matchup.sportsbook,
+            "home_elo": round(
+                (elo_ratings or {}).get(team_key(matchup.home_team), 1500.0), 1
+            ),
+            "away_elo": round(
+                (elo_ratings or {}).get(team_key(matchup.away_team), 1500.0), 1
+            ),
+            "home_stats": {
+                "offensive_points_per_play": home_stats.offensive_points_per_play,
+                "offensive_plays_per_game": home_stats.offensive_plays_per_game,
+                "opponent_points_per_play": home_stats.opponent_points_per_play,
+                "opponent_plays_per_game": home_stats.opponent_plays_per_game,
+            },
+            "away_stats": {
+                "offensive_points_per_play": away_stats.offensive_points_per_play,
+                "offensive_plays_per_game": away_stats.offensive_plays_per_game,
+                "opponent_points_per_play": away_stats.opponent_points_per_play,
+                "opponent_plays_per_game": away_stats.opponent_plays_per_game,
+            },
+        }
+        game["recommendation"] = (
+            recommended_bet(game) if matchup.start_time > generated_at else None
         )
+        games.append(game)
 
     week_start = reference_date - timedelta(days=reference_date.weekday())
     week_end = week_start + timedelta(days=6)
+    season = current_season_year(reference_date)
+    state = season_state or empty_season_state(season)
     return {
-        "season": current_season_year(reference_date),
+        "season": season,
         "week_start": week_start.isoformat(),
         "week_end": week_end.isoformat(),
         "generated_at": generated_at.astimezone(timezone.utc).isoformat(),
         "games": games,
         "skipped": skipped,
+        "season_record": {
+            **season_record_summary(state),
+            "recommendations": state.get("recommendations", []),
+            "updated_at": state.get("updated_at"),
+        },
         "sources": [
             {
                 "name": "TeamRankings",
@@ -104,7 +138,27 @@ def build_site(reference_date: date | None = None) -> Path:
     generated_at = datetime.now(timezone.utc)
     stats = fetch_team_stats(current_season_year(reference_date))
     matchups = fetch_weekly_matchups(reference_date)
-    payload = build_payload(reference_date, generated_at, matchups, stats)
+    season = current_season_year(reference_date)
+    if SEASON_STATE_PATH.exists():
+        season_state = json.loads(SEASON_STATE_PATH.read_text(encoding="utf-8"))
+        if season_state.get("season") != season:
+            season_state = empty_season_state(season)
+    else:
+        season_state = empty_season_state(season)
+    saved_ratings = season_state.get("elo_ratings")
+    elo_ratings = (
+        saved_ratings
+        if isinstance(saved_ratings, dict)
+        else fetch_season_elo_ratings(season, reference_date)
+    )
+    payload = build_payload(
+        reference_date,
+        generated_at,
+        matchups,
+        stats,
+        elo_ratings,
+        season_state,
+    )
 
     if not payload["games"] and not payload["skipped"]:
         raise RuntimeError(f"No FBS matchups found for the week of {reference_date.isoformat()}")

@@ -3,11 +3,23 @@ import json
 
 import pytest
 
-from gridiron_spread.data import Matchup, TeamStats, team_key
+from gridiron_spread.data import EloGame, Matchup, TeamStats, team_key
 from gridiron_spread.model import predict_team_points, project_matchup
+from gridiron_spread.season_record import (
+    recommended_bet,
+    season_record_summary,
+    update_season_state,
+)
 from gridiron_spread import sources
-from gridiron_spread.sources import _espn_odds, _read_team_stat, fetch_sportsline_spreads
+from gridiron_spread.sources import (
+    _espn_odds,
+    _read_team_stat,
+    calculate_elo_ratings,
+    completed_elo_games,
+    fetch_sportsline_spreads,
+)
 from scripts.build_site import build_payload
+from scripts.update_season import _select_mode
 
 
 def test_predict_team_points_averages_offense_and_opponent_output():
@@ -19,7 +31,7 @@ def test_predict_team_points_averages_offense_and_opponent_output():
     assert points == pytest.approx((0.5 * 70 + 0.35 * 72) / 2)
 
 
-def test_project_matchup_calculates_each_team_points_and_margin():
+def test_project_matchup_blends_points_per_play_and_elo_margins():
     home = TeamStats("Home", 0.5, 70, 65, 0.3)
     away = TeamStats("Away", 0.4, 68, 72, 0.35)
     matchup = Matchup(
@@ -30,11 +42,16 @@ def test_project_matchup_calculates_each_team_points_and_margin():
         sportsbook="FanDuel",
     )
 
-    projection = project_matchup(matchup, {"Home": home, "Away": away})
+    projection = project_matchup(
+        matchup,
+        {"Home": home, "Away": away},
+        {"home": 1600, "away": 1500},
+    )
 
     assert projection.home_points == pytest.approx((35 + 25.2) / 2)
     assert projection.away_points == pytest.approx((27.2 + 19.5) / 2)
-    assert projection.projected_home_margin == pytest.approx(6.75)
+    assert projection.elo_home_margin == pytest.approx(4)
+    assert projection.projected_home_margin == pytest.approx(5.375)
 
 
 def test_project_matchup_matches_abbreviated_team_names():
@@ -153,8 +170,9 @@ def test_sportsline_parser_reads_consensus_home_spread():
 
 
 def test_weekly_matchups_use_sportsline_only_when_espn_lines_are_missing(monkeypatch):
-    def event(home, away, odds):
+    def event(event_id, home, away, odds):
         return {
+            "id": event_id,
             "date": "2026-10-03T16:00:00Z",
             "competitions": [
                 {
@@ -168,8 +186,9 @@ def test_weekly_matchups_use_sportsline_only_when_espn_lines_are_missing(monkeyp
         }
 
     events = [
-        event("Home", "Away", []),
+        event("1", "Home", "Away", []),
         event(
+            "2",
             "Other Home",
             "Other Away",
             [
@@ -180,7 +199,7 @@ def test_weekly_matchups_use_sportsline_only_when_espn_lines_are_missing(monkeyp
                 }
             ],
         ),
-        event("No Line Home", "No Line Away", []),
+        event("3", "No Line Home", "No Line Away", []),
     ]
 
     def fetch(url):
@@ -245,12 +264,193 @@ def test_website_payload_serializes_projection_and_skipped_games():
     assert payload["week_start"] == "2026-09-28"
     assert payload["week_end"] == "2026-10-04"
     assert len(payload["games"]) == 1
-    assert payload["games"][0]["predicted_home_spread"] == -6.8
+    assert payload["games"][0]["predicted_home_spread"] == -3.4
     assert payload["games"][0]["market_home_spread"] == -3.5
     assert "home_points" not in payload["games"][0]
     assert "away_points" not in payload["games"][0]
     assert "projected_home_margin" not in payload["games"][0]
     assert payload["games"][0]["sportsbook"] == "FanDuel"
+    assert payload["games"][0]["home_elo"] == 1500
+    assert payload["season_record"]["wins"] == 0
     assert payload["skipped"] == [
         {"home_team": "UAB", "away_team": "Samford", "missing_stats": ["Samford"]}
     ]
+
+
+def test_calculate_elo_ratings_applies_expected_score_update():
+    games = [
+        EloGame(
+            event_id="1",
+            home_team="Home",
+            away_team="Away",
+            home_score=28,
+            away_score=21,
+            start_time=datetime(2026, 9, 1, tzinfo=timezone.utc),
+        )
+    ]
+
+    ratings = calculate_elo_ratings(games)
+
+    assert ratings["home"] == pytest.approx(1510)
+    assert ratings["away"] == pytest.approx(1490)
+
+
+def test_completed_elo_games_only_accepts_final_espn_events():
+    event = {
+        "id": "42",
+        "date": "2026-09-01T20:00:00Z",
+        "competitions": [
+            {
+                "status": {"type": {"state": "post"}},
+                "competitors": [
+                    {
+                        "homeAway": "home",
+                        "team": {"location": "Home"},
+                        "score": "21",
+                    },
+                    {
+                        "homeAway": "away",
+                        "team": {"location": "Away"},
+                        "score": "28",
+                    },
+                ],
+            }
+        ],
+    }
+    scheduled = json.loads(json.dumps(event))
+    scheduled["id"] = "43"
+    scheduled["competitions"][0]["status"]["type"]["state"] = "in"
+
+    results = completed_elo_games([event, scheduled])
+
+    assert len(results) == 1
+    assert results[0].event_id == "42"
+    assert results[0].away_score == 28
+
+
+@pytest.mark.parametrize(
+    ("instant", "expected_mode"),
+    [
+        ("2026-10-07T13:00:00+00:00", "refresh"),
+        ("2026-10-07T14:00:00+00:00", None),
+        ("2027-01-06T14:00:00+00:00", "refresh"),
+        ("2026-10-05T04:00:00+00:00", "grade"),
+        ("2027-01-04T05:00:00+00:00", "grade"),
+    ],
+)
+def test_scheduled_mode_matches_central_time_with_daylight_saving(
+    instant, expected_mode
+):
+    assert _select_mode("scheduled", datetime.fromisoformat(instant)) == expected_mode
+
+
+def test_recommended_bet_picks_model_favored_side_at_three_points():
+    game = {
+        "event_id": "123",
+        "home_team": "Home",
+        "away_team": "Away",
+        "predicted_home_spread": -7,
+        "market_home_spread": -3.0,
+        "sportsbook": "FanDuel",
+    }
+
+    assert recommended_bet(game) == {
+        "side": "home",
+        "team": "Home",
+        "spread": -3.0,
+        "difference": 4.0,
+        "sportsbook": "FanDuel",
+    }
+    game["predicted_home_spread"] = -6
+    assert recommended_bet(game)["difference"] == 3
+    game["predicted_home_spread"] = -5.9
+    assert recommended_bet(game) is None
+
+
+@pytest.mark.parametrize(
+    ("home_score", "away_score", "expected_status"),
+    [(24, 20, "win"), (20, 24, "loss"), (23, 20, "push")],
+)
+def test_season_record_grades_spread_picks_and_tracks_record(
+    home_score, away_score, expected_status
+):
+    kickoff = datetime(2026, 9, 5, 18, tzinfo=timezone.utc)
+    now = datetime(2026, 9, 6, 4, tzinfo=timezone.utc)
+    game = {
+        "event_id": "42",
+        "home_team": "Home",
+        "away_team": "Away",
+        "start_time": kickoff.isoformat(),
+        "predicted_home_spread": -7,
+        "market_home_spread": -3.0,
+        "sportsbook": "FanDuel",
+    }
+    pick_state = update_season_state(
+        None,
+        2026,
+        {},
+        [game],
+        [],
+        datetime(2026, 9, 4, tzinfo=timezone.utc),
+        "refresh",
+    )
+    completed = EloGame(
+        event_id="42",
+        home_team="Home",
+        away_team="Away",
+        home_score=home_score,
+        away_score=away_score,
+        start_time=kickoff,
+    )
+
+    graded = update_season_state(
+        pick_state,
+        2026,
+        {},
+        [],
+        [completed],
+        now,
+        "grade",
+    )
+
+    assert graded["recommendations"][0]["status"] == expected_status
+    summary = season_record_summary(graded)
+    assert summary[{"win": "wins", "loss": "losses", "push": "pushes"}[expected_status]] == 1
+
+
+def test_refresh_replaces_pending_pick_with_latest_qualifying_line():
+    kickoff = datetime(2026, 10, 3, 18, tzinfo=timezone.utc)
+    game = {
+        "event_id": "42",
+        "home_team": "Home",
+        "away_team": "Away",
+        "start_time": kickoff.isoformat(),
+        "predicted_home_spread": -8,
+        "market_home_spread": -4,
+        "sportsbook": "FanDuel",
+    }
+    first = update_season_state(
+        None,
+        2026,
+        {},
+        [game],
+        [],
+        datetime(2026, 10, 1, tzinfo=timezone.utc),
+        "refresh",
+    )
+    game["market_home_spread"] = -3.5
+    game["sportsbook"] = "DraftKings"
+    latest = update_season_state(
+        first,
+        2026,
+        {},
+        [game],
+        [],
+        datetime(2026, 10, 2, tzinfo=timezone.utc),
+        "refresh",
+    )
+
+    assert len(latest["recommendations"]) == 1
+    assert latest["recommendations"][0]["spread"] == -3.5
+    assert latest["recommendations"][0]["sportsbook"] == "DraftKings"
+    assert latest["recommendations"][0]["recommended_at"] == "2026-10-02T00:00:00+00:00"

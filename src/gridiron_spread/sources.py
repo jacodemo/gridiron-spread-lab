@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from html.parser import HTMLParser
@@ -9,7 +10,7 @@ from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from .data import Matchup, TeamStats, team_key
+from .data import EloGame, Matchup, TeamStats, team_key
 
 TEAMRANKINGS_URLS = {
     "offensive_points_per_play": "https://www.teamrankings.com/college-football/stat/points-per-play",
@@ -20,6 +21,7 @@ TEAMRANKINGS_URLS = {
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard"
 SPORTSLINE_ODDS_URL = "https://www.sportsline.com/college-football/odds/"
 USER_AGENT = "GridironSpreadLab/0.1 (+college football matchup analysis)"
+ELO_K_FACTOR = 20
 
 
 def _fetch_text(url: str) -> str:
@@ -147,6 +149,127 @@ def _canonical_team_name(team: dict[str, object]) -> str:
     return location
 
 
+def _fetch_scoreboard_day(game_date: date) -> list[dict[str, object]]:
+    params = urlencode(
+        {
+            "groups": "80",
+            "limit": "1000",
+            "dates": game_date.strftime("%Y%m%d"),
+            "region": "us",
+        }
+    )
+    payload = json.loads(_fetch_text(f"{ESPN_SCOREBOARD_URL}?{params}"))
+    events = payload.get("events", [])
+    if not isinstance(events, list):
+        raise ValueError(f"ESPN scoreboard returned an invalid event list for {game_date}")
+    return [event for event in events if isinstance(event, dict)]
+
+
+def fetch_scoreboard_events(start_date: date, end_date: date) -> list[dict[str, object]]:
+    if end_date < start_date:
+        raise ValueError("Scoreboard end date must not precede start date")
+    dates = [
+        start_date + timedelta(days=offset)
+        for offset in range((end_date - start_date).days + 1)
+    ]
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        daily_events = list(executor.map(_fetch_scoreboard_day, dates))
+    unique_events = {
+        str(event["id"]): event
+        for events in daily_events
+        for event in events
+        if event.get("id") is not None
+    }
+    return sorted(
+        unique_events.values(),
+        key=lambda event: str(event.get("date", "")),
+    )
+
+
+def completed_elo_games(events: list[dict[str, object]]) -> list[EloGame]:
+    games: list[EloGame] = []
+    for event in events:
+        event_id = event.get("id")
+        competitions = event.get("competitions")
+        if event_id is None or not isinstance(competitions, list) or not competitions:
+            continue
+        competition = competitions[0]
+        if not isinstance(competition, dict):
+            continue
+        status = competition.get("status")
+        status_type = status.get("type") if isinstance(status, dict) else None
+        if not isinstance(status_type, dict) or status_type.get("state") != "post":
+            continue
+        competitors = competition.get("competitors")
+        if not isinstance(competitors, list):
+            continue
+        by_side = {
+            competitor.get("homeAway"): competitor
+            for competitor in competitors
+            if isinstance(competitor, dict)
+        }
+        home = by_side.get("home")
+        away = by_side.get("away")
+        if not isinstance(home, dict) or not isinstance(away, dict):
+            continue
+        home_team = home.get("team")
+        away_team = away.get("team")
+        if not isinstance(home_team, dict) or not isinstance(away_team, dict):
+            continue
+        try:
+            home_score = int(home["score"])
+            away_score = int(away["score"])
+            start_time = datetime.fromisoformat(
+                str(event["date"]).replace("Z", "+00:00")
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
+        games.append(
+            EloGame(
+                event_id=str(event_id),
+                home_team=_canonical_team_name(home_team),
+                away_team=_canonical_team_name(away_team),
+                home_score=home_score,
+                away_score=away_score,
+                start_time=start_time,
+            )
+        )
+    return sorted(games, key=lambda game: (game.start_time, game.event_id))
+
+
+def calculate_elo_ratings(games: list[EloGame]) -> dict[str, float]:
+    ratings: dict[str, float] = {}
+    for game in sorted(games, key=lambda item: (item.start_time, item.event_id)):
+        home_key = team_key(game.home_team)
+        away_key = team_key(game.away_team)
+        home_rating = ratings.get(home_key, 1500.0)
+        away_rating = ratings.get(away_key, 1500.0)
+        expected_home = 1 / (1 + 10 ** ((away_rating - home_rating) / 400))
+        actual_home = (
+            1.0
+            if game.home_score > game.away_score
+            else 0.0
+            if game.home_score < game.away_score
+            else 0.5
+        )
+        change = ELO_K_FACTOR * (actual_home - expected_home)
+        ratings[home_key] = home_rating + change
+        ratings[away_key] = away_rating - change
+    return ratings
+
+
+def fetch_season_elo_ratings(
+    season_year: int,
+    through_date: date | None = None,
+) -> dict[str, float]:
+    through_date = through_date or date.today()
+    season_start = date(season_year, 8, 1)
+    if through_date < season_start:
+        return {}
+    events = fetch_scoreboard_events(season_start, through_date)
+    return calculate_elo_ratings(completed_elo_games(events))
+
+
 def _espn_odds(competition: dict[str, object]) -> tuple[float | None, str | None]:
     odds = competition.get("odds")
     if not isinstance(odds, list):
@@ -265,19 +388,7 @@ def fetch_weekly_matchups(reference_date: date | None = None) -> list[Matchup]:
     reference_date = reference_date or date.today()
     week_start = reference_date - timedelta(days=reference_date.weekday())
     week_end = week_start + timedelta(days=6)
-    events: list[dict[str, object]] = []
-    for day_offset in range(7):
-        game_date = week_start + timedelta(days=day_offset)
-        params = urlencode(
-            {
-                "groups": "80",
-                "limit": "1000",
-                "dates": game_date.strftime("%Y%m%d"),
-                "region": "us",
-            }
-        )
-        payload = json.loads(_fetch_text(f"{ESPN_SCOREBOARD_URL}?{params}"))
-        events.extend(payload.get("events", []))
+    events = fetch_scoreboard_events(week_start, week_end)
 
     matchups: list[Matchup] = []
     for event in events:
@@ -305,6 +416,7 @@ def fetch_weekly_matchups(reference_date: date | None = None) -> list[Matchup]:
                 start_time=start_time,
                 market_home_margin=market_margin,
                 sportsbook=sportsbook,
+                event_id=str(event["id"]),
             )
         )
 

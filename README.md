@@ -1,6 +1,6 @@
 # Gridiron Spread Lab
 
-An open, readable weekly FBS predicted-spread dashboard. Team projections use current-season averages from TeamRankings; matchup schedules and sportsbook lines come from ESPN, with SportsLine as a fallback.
+An open, readable weekly FBS predicted-spread dashboard with an Elo-adjusted model, scheduled sportsbook updates, recommended spread picks, and a season results ledger.
 
 **Live site:** [cfb-spread-predictions.dev](https://cfb-spread-predictions.dev/) · [Cloudflare Pages fallback](https://gridiron-spread-lab.pages.dev/)
 
@@ -45,7 +45,7 @@ The site is prepared for the registered domain `cfb-spread-predictions.dev`.
 3. Deploy the project. The published board reflects data fetched at build time; trigger a new deployment to refresh it.
 4. The custom domain `cfb-spread-predictions.dev` is attached to the Pages project. Cloudflare can configure DNS automatically when the domain is active in the same account. For an apex/root domain, its nameservers must point to Cloudflare.
 
-The project is connected to GitHub; pushes to `main` trigger a Pages rebuild and refresh the weekly source data.
+The project is connected to GitHub; pushes to `main` trigger a Pages rebuild. GitHub Actions refreshes spreads every Wednesday and Friday at 8:00 a.m. America/Chicago and grades completed recommendations every Sunday at 11:00 p.m. America/Chicago. Scheduled workflows store Elo ratings and recommendation results in `data/season_record.json`; their commits trigger Cloudflare Pages deployments. The workflow also supports manual refresh and grading runs from the GitHub Actions tab.
 
 Cloudflare's custom-domain flow and apex-domain requirements are documented in [Cloudflare Pages custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/). The Pages build command and output directory are configured as described in [Cloudflare Pages build configuration](https://developers.cloudflare.com/pages/configuration/build-configuration/).
 
@@ -56,7 +56,9 @@ For each team:
 1. Offensive output = points per play × offensive plays per game.
 2. Opponent output = opponent points per play × opponent plays per game.
 3. Estimate each team's scoring pace as the average of its offensive output and its opponent's opponent output.
-4. Predicted home spread = estimated away scoring pace − estimated home scoring pace.
+4. Calculate the points-per-play home margin from both scoring estimates.
+5. Calculate the Elo home margin as `(home Elo − away Elo) / 25`. Teams begin each season at 1500 Elo; completed FBS results update ratings using the standard 400-point expected-score curve and a K-factor of 20.
+6. Blend the points-per-play and Elo home margins equally. The displayed home spread is the negative of that blended home margin.
 
 The model uses these TeamRankings season columns:
 
@@ -65,7 +67,7 @@ The model uses these TeamRankings season columns:
 - `opponent-plays-per-game`
 - `opponent-points-per-play`
 
-The current week's FBS schedule comes from ESPN's public scoreboard feed. Market lines prefer FanDuel, then DraftKings, and use SportsLine's consensus spread when neither ESPN line is available. Each line is labeled with its source; unavailable lines are reported explicitly. The difference is the sportsbook home spread minus the predicted home spread: a positive value favors the home side, while a negative value favors the away side.
+The current week's FBS schedule and completed game results come from ESPN's public scoreboard feed. Market lines prefer FanDuel, then DraftKings, and use SportsLine's consensus spread when neither ESPN line is available. Each line is labeled with its source; unavailable lines are reported explicitly. The difference is the sportsbook home spread minus the predicted home spread: a positive value favors the home side, while a negative value favors the away side. A recommendation is shown when the difference is at least three points in absolute value and a sportsbook spread is available. The season record saves one latest qualifying recommendation per game before kickoff and grades it against the saved line as a win, loss, or push. It is an informational model record, not a guarantee or betting advice.
 
 All inputs are live external data. A missing or changed source table raises an error instead of silently substituting sample values.
 
@@ -73,6 +75,7 @@ All inputs are live external data. A missing or changed source table raises an e
 
 - Search teams and filter to games with a market line or a spread difference of at least three points.
 - Sort by kickoff, home team, or absolute spread difference.
-- Expand each game to see the team averages that produced its predicted spread.
+- See qualifying recommended bets and expand each game to inspect the TeamRankings averages and Elo ratings behind its predicted spread.
 - See the source for each line; FanDuel and DraftKings are preferred, with SportsLine as the fallback.
+- Follow the season's recommended-bet W–L–P record and final results.
 - View mobile-friendly matchup cards and a plain-language explanation of the model.
