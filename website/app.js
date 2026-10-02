@@ -68,6 +68,12 @@ function differenceClass(difference) {
   return "difference-neutral";
 }
 
+function hasListedSpread(game) {
+  const providerLines = Object.values(game.market_lines || {});
+  return providerLines.some((line) => typeof line === "number" && Number.isFinite(line))
+    || (typeof game.market_home_spread === "number" && Number.isFinite(game.market_home_spread));
+}
+
 function renderGame(game) {
   const homeTeam = escapeHtml(game.home_team);
   const awayTeam = escapeHtml(game.away_team);
@@ -122,7 +128,6 @@ function visibleGames() {
     const hasLine = game.market_home_spread !== null && game.market_home_spread !== undefined;
     const difference = hasLine ? game.market_home_spread - game.predicted_home_spread : null;
     const matchesFilter = activeFilter === "all"
-      || (activeFilter === "market" && hasLine)
       || (activeFilter === "edge" && difference !== null && Math.abs(difference) >= 3);
     return matchesSearch && matchesFilter;
   });
@@ -166,7 +171,6 @@ function updateSummary(data) {
   document.querySelector("#game-count").textContent = String(games.length).padStart(2, "0");
   document.querySelector("#line-count").textContent = String(lineCount);
   document.querySelector("#all-count").textContent = games.length;
-  document.querySelector("#market-count").textContent = lined.length;
   document.querySelector("#edge-count").textContent = games.filter((game) => (
     game.market_home_spread !== null
     && game.market_home_spread !== undefined
@@ -212,7 +216,7 @@ async function loadBoard() {
     const response = await fetch("./data.json", { cache: "no-store" });
     if (!response.ok) throw new Error(`Data request failed (${response.status})`);
     const data = await response.json();
-    games = data.games;
+    games = data.games.filter(hasListedSpread);
     updateSummary(data);
     renderGames();
   } catch (error) {

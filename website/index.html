@@ -45,7 +45,7 @@
         <article class="summary-stat">
           <span class="summary-label">MATCHUPS</span>
           <strong id="game-count">—</strong>
-          <span class="summary-note">with complete team stats</span>
+          <span class="summary-note">with at least one listed spread</span>
         </article>
         <article class="summary-stat">
           <span class="summary-label">BOOK LINES</span>
@@ -80,8 +80,7 @@
 
         <div class="board-toolbar">
           <div class="filter-tabs" role="group" aria-label="Filter matchups">
-            <button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">All games <span id="all-count">0</span></button>
-            <button class="filter-button" type="button" data-filter="market" aria-pressed="false">Market lines <span id="market-count">0</span></button>
+            <button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">Games with lines <span id="all-count">0</span></button>
             <button class="filter-button" type="button" data-filter="edge" aria-pressed="false">Differences ≥ 3 <span id="edge-count">0</span></button>
           </div>
           <label class="sort-control">SORT
@@ -101,7 +100,7 @@
             <div class="loading-state"><span class="loader"></span><span>Loading this week’s matchups…</span></div>
           </div>
         </div>
-        <p id="empty-state" class="empty-state" hidden>No games match those filters. Try another team or filter.</p>
+        <p id="empty-state" class="empty-state" hidden>No games with listed spreads match those filters. Try another team or filter.</p>
         <div id="skipped-notice" class="notice" hidden></div>
       </section>
 
