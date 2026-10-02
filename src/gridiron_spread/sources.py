@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from html.parser import HTMLParser
 from urllib.error import URLError
@@ -16,6 +18,7 @@ TEAMRANKINGS_URLS = {
     "opponent_points_per_play": "https://www.teamrankings.com/college-football/stat/opponent-points-per-play",
 }
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard"
+SPORTSLINE_ODDS_URL = "https://www.sportsline.com/college-football/odds/"
 USER_AGENT = "GridironSpreadLab/0.1 (+college football matchup analysis)"
 
 
@@ -156,25 +159,106 @@ def _espn_odds(competition: dict[str, object]) -> tuple[float | None, str | None
             if isinstance(provider, dict) and provider.get("name"):
                 named[str(provider["name"]).casefold()] = item
 
-    selection = next(
-        (
-            (named[name], {"fanduel": "FanDuel", "draftkings": "DraftKings"}[name])
-            for name in ("fanduel", "draftkings")
-            if name in named
-        ),
-        None,
-    )
-    if selection is None:
-        return None, None
+    for name, provider_name in (("fanduel", "FanDuel"), ("draftkings", "DraftKings")):
+        book_odds = named.get(name)
+        if book_odds is None:
+            continue
+        home_odds = book_odds.get("homeTeamOdds")
+        spread = book_odds.get("spread")
+        if not isinstance(home_odds, dict) or spread is None or home_odds.get("favorite") is None:
+            continue
+        try:
+            magnitude = abs(float(spread))
+        except (TypeError, ValueError):
+            continue
+        home_margin = magnitude if bool(home_odds["favorite"]) else -magnitude
+        return home_margin, provider_name
+    return None, None
 
-    book_odds, provider_name = selection
-    home_odds = book_odds.get("homeTeamOdds")
-    spread = book_odds.get("spread")
-    if not isinstance(home_odds, dict) or spread is None or home_odds.get("favorite") is None:
-        return None, provider_name
-    magnitude = abs(float(spread))
-    home_margin = magnitude if bool(home_odds["favorite"]) else -magnitude
-    return home_margin, provider_name
+
+def _sportsline_apollo_state(html: str) -> dict[str, object]:
+    marker = '"apolloState":'
+    decoder = json.JSONDecoder()
+    for match in re.finditer(r"self\.__next_f\.push\(\[1,", html):
+        try:
+            flight_data, _ = decoder.raw_decode(html[match.end():])
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(flight_data, str) or marker not in flight_data:
+            continue
+        state_start = flight_data.index(marker) + len(marker)
+        state, _ = decoder.raw_decode(flight_data[state_start:])
+        if isinstance(state, dict):
+            return state
+    raise ValueError(f"No SportsLine odds data found at {SPORTSLINE_ODDS_URL}")
+
+
+def _sportsline_spreads(state: dict[str, object]) -> dict[tuple[str, str, date], float]:
+    root_query = state.get("ROOT_QUERY")
+    if not isinstance(root_query, dict):
+        raise ValueError("SportsLine odds data did not include its event index")
+
+    event_lists = [
+        value.get("oddsCompetitions")
+        for key, value in root_query.items()
+        if key.startswith("odds(") and isinstance(value, dict)
+    ]
+    event_refs = max(
+        (refs for refs in event_lists if isinstance(refs, list)),
+        key=len,
+        default=[],
+    )
+    if not event_refs:
+        raise ValueError("SportsLine odds data did not include college football matchups")
+
+    spreads: dict[tuple[str, str, date], float] = {}
+    for event_ref in event_refs:
+        if not isinstance(event_ref, dict):
+            continue
+        event_key = event_ref.get("__ref")
+        competition = state.get(event_key) if isinstance(event_key, str) else None
+        if not isinstance(competition, dict):
+            continue
+
+        home_id = competition.get("homeTeamId")
+        away_id = competition.get("awayTeamId")
+        scheduled_time = competition.get("scheduledTime")
+        if not isinstance(scheduled_time, str):
+            continue
+        game_date = datetime.fromisoformat(scheduled_time.replace("Z", "+00:00")).date()
+        home_team = state.get(f"CompetitionDTOTeam:{home_id}")
+        away_team = state.get(f"CompetitionDTOTeam:{away_id}")
+        if not isinstance(home_team, dict) or not isinstance(away_team, dict):
+            continue
+
+        home_name = str(home_team.get("location") or home_team.get("mediumName") or "")
+        away_name = str(away_team.get("location") or away_team.get("mediumName") or "")
+        if not home_name or not away_name:
+            continue
+
+        book_odds = competition.get("sportsBookOdds")
+        if not isinstance(book_odds, dict):
+            continue
+        consensus = book_odds.get("consensus")
+        spread = consensus.get("spread") if isinstance(consensus, dict) else None
+        home_line = spread.get("home") if isinstance(spread, dict) else None
+        value = home_line.get("value") if isinstance(home_line, dict) else None
+        if not isinstance(value, str):
+            continue
+        line_match = re.fullmatch(r"\s*([+-]?\d+(?:\.\d+)?)\s*", value)
+        if not line_match:
+            continue
+
+        home_spread = float(line_match.group(1))
+        spreads[(team_key(home_name), team_key(away_name), game_date)] = -home_spread
+
+    return spreads
+
+
+def fetch_sportsline_spreads(html: str | None = None) -> dict[tuple[str, str, date], float]:
+    if html is None:
+        html = _fetch_text(SPORTSLINE_ODDS_URL)
+    return _sportsline_spreads(_sportsline_apollo_state(html))
 
 
 def fetch_weekly_matchups(reference_date: date | None = None) -> list[Matchup]:
@@ -223,6 +307,33 @@ def fetch_weekly_matchups(reference_date: date | None = None) -> list[Matchup]:
                 sportsbook=sportsbook,
             )
         )
+
+    if any(matchup.market_home_margin is None for matchup in matchups):
+        sportsline_spreads = fetch_sportsline_spreads()
+        matchups = [
+            replace(
+                matchup,
+                market_home_margin=sportsline_spreads[
+                    (
+                        team_key(matchup.home_team),
+                        team_key(matchup.away_team),
+                        matchup.start_time.date(),
+                    )
+                ],
+                sportsbook="SportsLine",
+            )
+            if (
+                matchup.market_home_margin is None
+                and (
+                    team_key(matchup.home_team),
+                    team_key(matchup.away_team),
+                    matchup.start_time.date(),
+                )
+                in sportsline_spreads
+            )
+            else matchup
+            for matchup in matchups
+        ]
 
     return matchups
 

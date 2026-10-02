@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101d32">
-    <meta name="description" content="Weekly FBS score projections and sportsbook spread comparisons.">
+    <meta name="description" content="Weekly FBS predicted spreads compared with sportsbook lines.">
     <link rel="canonical" href="https://cfb-spread-predictions.dev/">
     <meta property="og:title" content="Gridiron Spread Lab — Weekly Forecast">
-    <meta property="og:description" content="A straightforward look at projected scores, market spreads, and where the numbers disagree.">
+    <meta property="og:description" content="A straightforward comparison of predicted spreads and sportsbook lines.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cfb-spread-predictions.dev/">
     <title>Gridiron Spread Lab — Weekly Forecast</title>
@@ -31,7 +31,7 @@
         <div class="hero-copy">
           <p class="eyebrow">THE WEEKLY BOARD <span class="eyebrow-rule"></span></p>
           <h1>Find your<br><span>game-day edge.</span></h1>
-          <p class="hero-description">A straightforward look at projected scores, market spreads, and where the numbers disagree.</p>
+          <p class="hero-description">Compare the model’s predicted spread with the sportsbook line for every matchup.</p>
         </div>
         <div class="week-card">
           <span class="week-card-label">CURRENT SLATE</span>
@@ -53,7 +53,7 @@
           <span class="summary-note">posted by a listed sportsbook</span>
         </article>
         <article class="summary-stat summary-stat-edge">
-          <span class="summary-label">BIGGEST MODEL EDGE</span>
+          <span class="summary-label">LARGEST SPREAD DIFFERENCE</span>
           <strong id="biggest-edge">—</strong>
           <span class="summary-note" id="biggest-edge-teams">compared with the market</span>
         </article>
@@ -67,7 +67,7 @@
       <section class="board-section" aria-labelledby="board-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow section-kicker">PROJECTED SCORES & MARKET LINES</p>
+            <p class="eyebrow section-kicker">PREDICTED SPREADS & MARKET LINES</p>
             <h2 id="board-title">The matchup board<span class="heading-period">.</span></h2>
           </div>
           <label class="search-box">
@@ -82,19 +82,19 @@
           <div class="filter-tabs" role="group" aria-label="Filter matchups">
             <button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">All games <span id="all-count">0</span></button>
             <button class="filter-button" type="button" data-filter="market" aria-pressed="false">Market lines <span id="market-count">0</span></button>
-            <button class="filter-button" type="button" data-filter="edge" aria-pressed="false">Edges ≥ 3 <span id="edge-count">0</span></button>
+            <button class="filter-button" type="button" data-filter="edge" aria-pressed="false">Differences ≥ 3 <span id="edge-count">0</span></button>
           </div>
           <label class="sort-control">SORT
             <select id="sort-select" aria-label="Sort matchups">
               <option value="time">Kickoff time</option>
-              <option value="edge">Biggest edge</option>
+              <option value="edge">Largest difference</option>
               <option value="home">Home team A–Z</option>
             </select>
           </label>
         </div>
 
         <div class="board-columns" aria-hidden="true">
-          <span>MATCHUP</span><span>PROJECTED SCORE</span><span>MARKET SPREAD</span><span>MODEL EDGE</span>
+          <span>MATCHUP</span><span>PREDICTED SPREAD</span><span>SPORTSBOOK SPREAD</span><span>DIFFERENCE</span>
         </div>
         <div id="game-list" class="game-list" aria-live="polite" aria-busy="true">
           <div class="loading-state"><span class="loader"></span><span>Loading this week’s matchups…</span></div>
@@ -122,13 +122,13 @@
           </div>
           <div class="formula-step formula-result">
             <span class="step-index">03</span>
-            <div><strong>Projected points</strong><p>Average of the team’s pace and its opponent’s pace allowed</p></div>
+            <div><strong>Team scoring estimate</strong><p>Average of the team’s pace and its opponent’s pace allowed</p></div>
             <span class="formula-sign">÷ 2</span>
           </div>
           <div class="method-footer">
-            <span>MODEL EDGE</span>
-            <strong>Projected home margin − market-implied home margin</strong>
-            <span class="edge-key"><i class="positive-dot"></i> Positive leans home <i class="negative-dot"></i> Negative leans away</span>
+            <span>SPREAD DIFFERENCE</span>
+            <strong>Sportsbook home spread − predicted home spread</strong>
+            <span class="edge-key"><i class="positive-dot"></i> Positive favors home <i class="negative-dot"></i> Negative favors away</span>
           </div>
         </div>
       </section>
@@ -137,7 +137,8 @@
         <span class="summary-label">BUILT FROM</span>
         <a href="https://www.teamrankings.com/college-football/" target="_blank" rel="noreferrer">TeamRankings stats <span aria-hidden="true">↗</span></a>
         <a href="https://www.espn.com/college-football/scoreboard" target="_blank" rel="noreferrer">ESPN schedule & lines <span aria-hidden="true">↗</span></a>
-        <p>Lines prefer FanDuel, then DraftKings when FanDuel isn’t listed.</p>
+        <a href="https://www.sportsline.com/college-football/odds/" target="_blank" rel="noreferrer">SportsLine odds <span aria-hidden="true">↗</span></a>
+        <p>Lines prefer FanDuel, then DraftKings, then SportsLine.</p>
       </section>
     </main>
 

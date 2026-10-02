@@ -1,6 +1,6 @@
 # Gridiron Spread Lab
 
-An open, readable weekly FBS score and spread dashboard. Team projections use current-season averages from TeamRankings; matchup schedules and sportsbook lines come from ESPN.
+An open, readable weekly FBS predicted-spread dashboard. Team projections use current-season averages from TeamRankings; matchup schedules and sportsbook lines come from ESPN, with SportsLine as a fallback.
 
 **Live site:** [cfb-spread-predictions.dev](https://cfb-spread-predictions.dev/) · [Cloudflare Pages fallback](https://gridiron-spread-lab.pages.dev/)
 
@@ -55,8 +55,8 @@ For each team:
 
 1. Offensive output = points per play × offensive plays per game.
 2. Opponent output = opponent points per play × opponent plays per game.
-3. Projected points = the average of that team's offensive output and its opponent's opponent output.
-4. Projected home margin = projected home points − projected away points.
+3. Estimate each team's scoring pace as the average of its offensive output and its opponent's opponent output.
+4. Predicted home spread = estimated away scoring pace − estimated home scoring pace.
 
 The model uses these TeamRankings season columns:
 
@@ -65,14 +65,14 @@ The model uses these TeamRankings season columns:
 - `opponent-plays-per-game`
 - `opponent-points-per-play`
 
-The current week's FBS schedule comes from ESPN's public scoreboard feed. Market lines prefer FanDuel and fall back to DraftKings when the feed does not provide a FanDuel line. Each line is labeled with its sportsbook; unavailable lines are reported explicitly. The `Edge` column is the model's projected home margin minus the market's implied home margin.
+The current week's FBS schedule comes from ESPN's public scoreboard feed. Market lines prefer FanDuel, then DraftKings, and use SportsLine's consensus spread when neither ESPN line is available. Each line is labeled with its source; unavailable lines are reported explicitly. The difference is the sportsbook home spread minus the predicted home spread: a positive value favors the home side, while a negative value favors the away side.
 
 All inputs are live external data. A missing or changed source table raises an error instead of silently substituting sample values.
 
 ## Website features
 
-- Search teams and filter to games with a market line or a model edge of at least three points.
-- Sort by kickoff, home team, or absolute model edge.
-- Expand each game to see the team averages that produced its projected score.
-- See the sportsbook for each line; FanDuel is preferred, with DraftKings as the fallback.
+- Search teams and filter to games with a market line or a spread difference of at least three points.
+- Sort by kickoff, home team, or absolute spread difference.
+- Expand each game to see the team averages that produced its predicted spread.
+- See the source for each line; FanDuel and DraftKings are preferred, with SportsLine as the fallback.
 - View mobile-friendly matchup cards and a plain-language explanation of the model.

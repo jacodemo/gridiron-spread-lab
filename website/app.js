@@ -50,33 +50,33 @@ function signed(value) {
   return `${value > 0 ? "+" : ""}${formatNumber(value)}`;
 }
 
-function marketLabel(game) {
-  if (game.market_home_margin === null || game.market_home_margin === undefined) {
+function spreadLabel(homeTeam, awayTeam, homeSpread, sportsbook = null) {
+  if (homeSpread === null || homeSpread === undefined) {
     return '<span class="market-unavailable">Line unavailable</span>';
   }
-  const favorite = escapeHtml(game.market_home_margin > 0 ? game.home_team : game.away_team);
-  const spread = -Math.abs(game.market_home_margin);
-  if (game.market_home_margin === 0) {
-    return `<span class="market-team">Pick’em</span><span class="market-book">${escapeHtml(game.sportsbook)}</span>`;
+  if (homeSpread === 0) {
+    return `<span class="market-team">Pick’em</span>${sportsbook ? `<span class="market-book">${escapeHtml(sportsbook)}</span>` : ""}`;
   }
-  return `<span class="market-team">${favorite}<b>${formatNumber(spread)}</b></span><span class="market-book">${escapeHtml(game.sportsbook)}</span>`;
+  const favorite = escapeHtml(homeSpread < 0 ? homeTeam : awayTeam);
+  const spread = -Math.abs(homeSpread);
+  return `<span class="market-team">${favorite}<b>${formatNumber(spread)}</b></span>${sportsbook ? `<span class="market-book">${escapeHtml(sportsbook)}</span>` : ""}`;
 }
 
-function edgeClass(edge) {
-  if (edge >= 3) return "edge-home";
-  if (edge <= -3) return "edge-away";
-  return "edge-neutral";
+function differenceClass(difference) {
+  if (difference >= 3) return "difference-home";
+  if (difference <= -3) return "difference-away";
+  return "difference-neutral";
 }
 
 function renderGame(game) {
   const homeTeam = escapeHtml(game.home_team);
   const awayTeam = escapeHtml(game.away_team);
-  const edge = game.market_home_margin === null || game.market_home_margin === undefined
+  const difference = game.market_home_spread === null || game.market_home_spread === undefined
     ? null
-    : game.projected_home_margin - game.market_home_margin;
-  const edgeLabel = edge === null
-    ? '<span class="edge-value edge-missing">—</span><span class="edge-hint">No market line</span>'
-    : `<span class="edge-value ${edgeClass(edge)}">${signed(edge)}</span><span class="edge-hint">${edge >= 0 ? "model leans home" : "model leans away"}</span>`;
+    : game.market_home_spread - game.predicted_home_spread;
+  const differenceLabel = difference === null
+    ? '<span class="difference-value difference-missing">—</span><span class="difference-hint">No sportsbook line</span>'
+    : `<span class="difference-value ${differenceClass(difference)}">${signed(difference)}</span><span class="difference-hint">pts toward ${difference >= 0 ? "home" : "away"}</span>`;
   return `
     <article class="game-card">
       <div class="game-primary">
@@ -85,19 +85,19 @@ function renderGame(game) {
           <strong class="away-team">${awayTeam}<span class="at-label">at</span></strong>
           <strong class="home-team">${homeTeam}<span class="home-indicator">HOME</span></strong>
         </div>
-        <div class="projected-score">
-          <span class="projection-label">PROJECTED</span>
-          <strong><span>${formatNumber(game.away_points)}</span><i>—</i><span>${formatNumber(game.home_points)}</span></strong>
-          <small>${awayTeam} <i>·</i> ${homeTeam}</small>
+        <div class="spread-cell predicted-spread">
+          ${spreadLabel(game.home_team, game.away_team, game.predicted_home_spread)}
         </div>
-        <div class="market-cell">${marketLabel(game)}</div>
-        <div class="edge-cell">${edgeLabel}</div>
+        <div class="spread-cell market-cell">
+          ${spreadLabel(game.home_team, game.away_team, game.market_home_spread, game.sportsbook)}
+        </div>
+        <div class="difference-cell">${differenceLabel}</div>
       </div>
       <details class="game-details">
-        <summary>How we got the score <span aria-hidden="true">＋</span></summary>
+        <summary>How we got the predicted spread <span aria-hidden="true">＋</span></summary>
         <div class="team-math">
-          <div><strong>${awayTeam}</strong><span>Offense ${formatNumber(game.away_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.away_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.home_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.home_stats.opponent_plays_per_game)} plays</span><b>Projected ${formatNumber(game.away_points)} pts</b></div>
-          <div><strong>${homeTeam}</strong><span>Offense ${formatNumber(game.home_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.home_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.away_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.away_stats.opponent_plays_per_game)} plays</span><b>Projected ${formatNumber(game.home_points)} pts</b></div>
+          <div><strong>${awayTeam}</strong><span>Offense ${formatNumber(game.away_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.away_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.home_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.home_stats.opponent_plays_per_game)} plays</span></div>
+          <div><strong>${homeTeam}</strong><span>Offense ${formatNumber(game.home_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.home_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.away_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.away_stats.opponent_plays_per_game)} plays</span></div>
         </div>
       </details>
     </article>`;
@@ -107,19 +107,19 @@ function visibleGames() {
   const query = searchInput.value.trim().toLocaleLowerCase();
   let result = games.filter((game) => {
     const matchesSearch = !query || `${game.home_team} ${game.away_team}`.toLocaleLowerCase().includes(query);
-    const hasLine = game.market_home_margin !== null && game.market_home_margin !== undefined;
-    const edge = hasLine ? game.projected_home_margin - game.market_home_margin : null;
+    const hasLine = game.market_home_spread !== null && game.market_home_spread !== undefined;
+    const difference = hasLine ? game.market_home_spread - game.predicted_home_spread : null;
     const matchesFilter = activeFilter === "all"
       || (activeFilter === "market" && hasLine)
-      || (activeFilter === "edge" && edge !== null && Math.abs(edge) >= 3);
+      || (activeFilter === "edge" && difference !== null && Math.abs(difference) >= 3);
     return matchesSearch && matchesFilter;
   });
 
   if (sortSelect.value === "edge") {
     result.sort((a, b) => {
-      const aEdge = a.market_home_margin === null ? -Infinity : Math.abs(a.projected_home_margin - a.market_home_margin);
-      const bEdge = b.market_home_margin === null ? -Infinity : Math.abs(b.projected_home_margin - b.market_home_margin);
-      return bEdge - aEdge;
+      const aDifference = a.market_home_spread === null ? -Infinity : Math.abs(a.market_home_spread - a.predicted_home_spread);
+      const bDifference = b.market_home_spread === null ? -Infinity : Math.abs(b.market_home_spread - b.predicted_home_spread);
+      return bDifference - aDifference;
     });
   } else if (sortSelect.value === "home") {
     result.sort((a, b) => a.home_team.localeCompare(b.home_team));
@@ -139,11 +139,11 @@ function renderGames() {
 }
 
 function updateSummary(data) {
-  const lined = games.filter((game) => game.market_home_margin !== null && game.market_home_margin !== undefined);
+  const lined = games.filter((game) => game.market_home_spread !== null && game.market_home_spread !== undefined);
   const biggest = lined.reduce((best, game) => {
-    const edge = game.projected_home_margin - game.market_home_margin;
-    return Math.abs(edge) > Math.abs(best.edge) ? { edge, game } : best;
-  }, { edge: 0, game: null });
+    const difference = game.market_home_spread - game.predicted_home_spread;
+    return Math.abs(difference) > Math.abs(best.difference) ? { difference, game } : best;
+  }, { difference: 0, game: null });
   document.querySelector("#week-label").textContent = formatWeek(data.week_start, data.week_end);
   document.querySelector("#season-label").textContent = `${data.season} SEASON`;
   document.querySelector("#footer-season").textContent = `${data.season} FBS · DATA-DRIVEN, NOT GUARANTEED`;
@@ -152,13 +152,13 @@ function updateSummary(data) {
   document.querySelector("#all-count").textContent = games.length;
   document.querySelector("#market-count").textContent = lined.length;
   document.querySelector("#edge-count").textContent = games.filter((game) => (
-    game.market_home_margin !== null
-    && game.market_home_margin !== undefined
-    && Math.abs(game.projected_home_margin - game.market_home_margin) >= 3
+    game.market_home_spread !== null
+    && game.market_home_spread !== undefined
+    && Math.abs(game.market_home_spread - game.predicted_home_spread) >= 3
   )).length;
   document.querySelector("#updated-label").textContent = formatUpdated(data.generated_at);
   if (biggest.game) {
-    document.querySelector("#biggest-edge").textContent = `${biggest.edge >= 0 ? "HOME" : "AWAY"} ${formatNumber(Math.abs(biggest.edge))}`;
+    document.querySelector("#biggest-edge").textContent = `${biggest.difference >= 0 ? "HOME" : "AWAY"} ${formatNumber(Math.abs(biggest.difference))} pts`;
     document.querySelector("#biggest-edge-teams").textContent = `${biggest.game.away_team} at ${biggest.game.home_team}`;
   }
   if (data.skipped.length) {

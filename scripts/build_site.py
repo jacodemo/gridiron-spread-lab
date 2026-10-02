@@ -54,10 +54,12 @@ def build_payload(
                 "home_team": matchup.home_team,
                 "away_team": matchup.away_team,
                 "start_time": matchup.start_time.isoformat(),
-                "home_points": round(projection.home_points, 1),
-                "away_points": round(projection.away_points, 1),
-                "projected_home_margin": round(projection.projected_home_margin, 1),
-                "market_home_margin": matchup.market_home_margin,
+                "predicted_home_spread": round(-projection.projected_home_margin, 1),
+                "market_home_spread": (
+                    round(-matchup.market_home_margin, 1)
+                    if matchup.market_home_margin is not None
+                    else None
+                ),
                 "sportsbook": matchup.sportsbook,
                 "home_stats": {
                     "offensive_points_per_play": home_stats.offensive_points_per_play,

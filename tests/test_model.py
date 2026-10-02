@@ -1,10 +1,12 @@
 from datetime import date, datetime, timezone
+import json
 
 import pytest
 
 from gridiron_spread.data import Matchup, TeamStats, team_key
 from gridiron_spread.model import predict_team_points, project_matchup
-from gridiron_spread.sources import _espn_odds, _read_team_stat
+from gridiron_spread import sources
+from gridiron_spread.sources import _espn_odds, _read_team_stat, fetch_sportsline_spreads
 from scripts.build_site import build_payload
 
 
@@ -103,6 +105,102 @@ def test_odds_prefer_fanduel_then_use_labeled_draftkings_fallback():
     assert _espn_odds(competition) == (-4.5, "DraftKings")
 
 
+def test_odds_use_draftkings_when_fanduel_line_is_invalid():
+    competition = {
+        "odds": [
+            {
+                "provider": {"name": "FanDuel"},
+                "spread": "--",
+                "homeTeamOdds": {"favorite": True},
+            },
+            {
+                "provider": {"name": "DraftKings"},
+                "spread": 4.5,
+                "homeTeamOdds": {"favorite": False},
+            },
+        ]
+    }
+
+    assert _espn_odds(competition) == (-4.5, "DraftKings")
+
+
+def _sportsline_html() -> str:
+    state = {
+        "ROOT_QUERY": {
+            'odds({"league":"ncaaf"})': {
+                "oddsCompetitions": [{"__ref": "OddsCompetitionDTO:1"}]
+            }
+        },
+        "OddsCompetitionDTO:1": {
+            "homeTeamId": 1,
+            "awayTeamId": 2,
+            "scheduledTime": "2026-10-03T16:00:00Z",
+            "sportsBookOdds": {
+                "consensus": {"spread": {"home": {"value": "+3.5"}}}
+            },
+        },
+        "CompetitionDTOTeam:1": {"location": "Home"},
+        "CompetitionDTOTeam:2": {"location": "Away"},
+    }
+    flight_data = f'"apolloState":{json.dumps(state)}'
+    return f"<script>self.__next_f.push([1,{json.dumps(flight_data)}])</script>"
+
+
+def test_sportsline_parser_reads_consensus_home_spread():
+    assert fetch_sportsline_spreads(_sportsline_html()) == {
+        ("home", "away", date(2026, 10, 3)): -3.5
+    }
+
+
+def test_weekly_matchups_use_sportsline_only_when_espn_lines_are_missing(monkeypatch):
+    def event(home, away, odds):
+        return {
+            "date": "2026-10-03T16:00:00Z",
+            "competitions": [
+                {
+                    "competitors": [
+                        {"homeAway": "home", "team": {"location": home}},
+                        {"homeAway": "away", "team": {"location": away}},
+                    ],
+                    "odds": odds,
+                }
+            ],
+        }
+
+    events = [
+        event("Home", "Away", []),
+        event(
+            "Other Home",
+            "Other Away",
+            [
+                {
+                    "provider": {"name": "FanDuel"},
+                    "spread": 4.5,
+                    "homeTeamOdds": {"favorite": True},
+                }
+            ],
+        ),
+        event("No Line Home", "No Line Away", []),
+    ]
+
+    def fetch(url):
+        if url.startswith(sources.ESPN_SCOREBOARD_URL):
+            return json.dumps({"events": events if "dates=20261003" in url else []})
+        if url == sources.SPORTSLINE_ODDS_URL:
+            return _sportsline_html()
+        raise AssertionError(f"Unexpected source URL: {url}")
+
+    monkeypatch.setattr(sources, "_fetch_text", fetch)
+    matchups = sources.fetch_weekly_matchups(date(2026, 10, 3))
+
+    assert matchups[0].market_home_margin == -3.5
+    assert matchups[0].sportsbook == "SportsLine"
+    assert matchups[1].market_home_margin == 4.5
+    assert matchups[1].sportsbook == "FanDuel"
+    assert matchups[2].market_home_margin is None
+    assert matchups[2].sportsbook is None
+
+
 @pytest.mark.parametrize(
     ("schedule_name", "stats_name"),
     [
@@ -147,7 +245,11 @@ def test_website_payload_serializes_projection_and_skipped_games():
     assert payload["week_start"] == "2026-09-28"
     assert payload["week_end"] == "2026-10-04"
     assert len(payload["games"]) == 1
-    assert payload["games"][0]["projected_home_margin"] == 6.8
+    assert payload["games"][0]["predicted_home_spread"] == -6.8
+    assert payload["games"][0]["market_home_spread"] == -3.5
+    assert "home_points" not in payload["games"][0]
+    assert "away_points" not in payload["games"][0]
+    assert "projected_home_margin" not in payload["games"][0]
     assert payload["games"][0]["sportsbook"] == "FanDuel"
     assert payload["skipped"] == [
         {"home_team": "UAB", "away_team": "Samford", "missing_stats": ["Samford"]}
