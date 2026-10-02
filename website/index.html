@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101d32">
+    <meta name="description" content="Weekly FBS score projections and sportsbook spread comparisons.">
+    <link rel="canonical" href="https://cfb-spread-predictions.dev/">
+    <meta property="og:title" content="Gridiron Spread Lab — Weekly Forecast">
+    <meta property="og:description" content="A straightforward look at projected scores, market spreads, and where the numbers disagree.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://cfb-spread-predictions.dev/">
+    <title>Gridiron Spread Lab — Weekly Forecast</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Gridiron Spread Lab home">
+        <span class="brand-mark" aria-hidden="true">G</span>
+        <span>GRIDIRON <span class="brand-light">SPREAD LAB</span></span>
+      </a>
+      <span class="season-tag"><span class="live-dot"></span><span id="season-label">COLLEGE FOOTBALL</span></span>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">THE WEEKLY BOARD <span class="eyebrow-rule"></span></p>
+          <h1>Find your<br><span>game-day edge.</span></h1>
+          <p class="hero-description">A straightforward look at projected scores, market spreads, and where the numbers disagree.</p>
+        </div>
+        <div class="week-card">
+          <span class="week-card-label">CURRENT SLATE</span>
+          <strong id="week-label">Loading week…</strong>
+          <span class="week-card-foot"><span class="week-calendar" aria-hidden="true">▦</span> FBS · REGULAR SEASON</span>
+        </div>
+        <div class="hero-stamp" aria-hidden="true"><span>CFB</span><strong>26</strong><i>WEEKLY<br>MODEL</i></div>
+      </section>
+
+      <section class="stats-strip" aria-label="Slate summary">
+        <article class="summary-stat">
+          <span class="summary-label">MATCHUPS</span>
+          <strong id="game-count">—</strong>
+          <span class="summary-note">with complete team stats</span>
+        </article>
+        <article class="summary-stat">
+          <span class="summary-label">MARKET LINES</span>
+          <strong id="line-count">—</strong>
+          <span class="summary-note">posted by a listed sportsbook</span>
+        </article>
+        <article class="summary-stat summary-stat-edge">
+          <span class="summary-label">BIGGEST MODEL EDGE</span>
+          <strong id="biggest-edge">—</strong>
+          <span class="summary-note" id="biggest-edge-teams">compared with the market</span>
+        </article>
+        <article class="summary-stat summary-stat-updated">
+          <span class="summary-label">DATA REFRESHED</span>
+          <strong id="updated-label">—</strong>
+          <span class="summary-note">at the latest site build</span>
+        </article>
+      </section>
+
+      <section class="board-section" aria-labelledby="board-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow section-kicker">PROJECTED SCORES & MARKET LINES</p>
+            <h2 id="board-title">The matchup board<span class="heading-period">.</span></h2>
+          </div>
+          <label class="search-box">
+            <span class="search-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Search teams</span>
+            <input id="team-search" type="search" placeholder="Find a team…" autocomplete="off">
+            <kbd>/</kbd>
+          </label>
+        </div>
+
+        <div class="board-toolbar">
+          <div class="filter-tabs" role="group" aria-label="Filter matchups">
+            <button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">All games <span id="all-count">0</span></button>
+            <button class="filter-button" type="button" data-filter="market" aria-pressed="false">Market lines <span id="market-count">0</span></button>
+            <button class="filter-button" type="button" data-filter="edge" aria-pressed="false">Edges ≥ 3 <span id="edge-count">0</span></button>
+          </div>
+          <label class="sort-control">SORT
+            <select id="sort-select" aria-label="Sort matchups">
+              <option value="time">Kickoff time</option>
+              <option value="edge">Biggest edge</option>
+              <option value="home">Home team A–Z</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="board-columns" aria-hidden="true">
+          <span>MATCHUP</span><span>PROJECTED SCORE</span><span>MARKET SPREAD</span><span>MODEL EDGE</span>
+        </div>
+        <div id="game-list" class="game-list" aria-live="polite" aria-busy="true">
+          <div class="loading-state"><span class="loader"></span><span>Loading this week’s matchups…</span></div>
+        </div>
+        <p id="empty-state" class="empty-state" hidden>No games match those filters. Try another team or filter.</p>
+        <div id="skipped-notice" class="notice" hidden></div>
+      </section>
+
+      <section class="method-section" aria-labelledby="method-title">
+        <div class="method-heading">
+          <p class="eyebrow section-kicker">OPEN BOOK MODEL</p>
+          <h2 id="method-title">No black box.<br><span>Just the math.</span></h2>
+          <p>Every projection starts with the same four season averages. No rankings or subjective power ratings added.</p>
+        </div>
+        <div class="formula-card">
+          <div class="formula-step">
+            <span class="step-index">01</span>
+            <div><strong>Team scoring pace</strong><p>Offensive points per play × offensive plays per game</p></div>
+            <span class="formula-sign">×</span>
+          </div>
+          <div class="formula-step">
+            <span class="step-index">02</span>
+            <div><strong>Opponent scoring pace</strong><p>Opponent points per play × opponent plays per game</p></div>
+            <span class="formula-sign">×</span>
+          </div>
+          <div class="formula-step formula-result">
+            <span class="step-index">03</span>
+            <div><strong>Projected points</strong><p>Average of the team’s pace and its opponent’s pace allowed</p></div>
+            <span class="formula-sign">÷ 2</span>
+          </div>
+          <div class="method-footer">
+            <span>MODEL EDGE</span>
+            <strong>Projected home margin − market-implied home margin</strong>
+            <span class="edge-key"><i class="positive-dot"></i> Positive leans home <i class="negative-dot"></i> Negative leans away</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sources-row" aria-label="Data sources">
+        <span class="summary-label">BUILT FROM</span>
+        <a href="https://www.teamrankings.com/college-football/" target="_blank" rel="noreferrer">TeamRankings stats <span aria-hidden="true">↗</span></a>
+        <a href="https://www.espn.com/college-football/scoreboard" target="_blank" rel="noreferrer">ESPN schedule & lines <span aria-hidden="true">↗</span></a>
+        <p>Lines prefer FanDuel, then DraftKings when FanDuel isn’t listed.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a class="brand footer-brand" href="./"><span class="brand-mark" aria-hidden="true">G</span><span>GRIDIRON <span class="brand-light">SPREAD LAB</span></span></a>
+      <span>For analysis and entertainment. Not betting advice.</span>
+      <span id="footer-season">FBS · DATA-DRIVEN, NOT GUARANTEED</span>
+    </footer>
+  </body>
+</html>

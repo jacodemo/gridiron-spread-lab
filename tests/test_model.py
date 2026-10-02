@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 
 from gridiron_spread.data import Matchup, TeamStats, team_key
 from gridiron_spread.model import predict_team_points, project_matchup
 from gridiron_spread.sources import _espn_odds, _read_team_stat
+from scripts.build_site import build_payload
 
 
 def test_predict_team_points_averages_offense_and_opponent_output():
@@ -113,3 +114,41 @@ def test_odds_prefer_fanduel_then_use_labeled_draftkings_fallback():
 )
 def test_team_name_aliases_match_teamrankings(schedule_name, stats_name):
     assert team_key(schedule_name) == team_key(stats_name)
+
+
+def test_website_payload_serializes_projection_and_skipped_games():
+    matchup = Matchup(
+        home_team="Home",
+        away_team="Away",
+        start_time=datetime(2026, 10, 3, tzinfo=timezone.utc),
+        market_home_margin=3.5,
+        sportsbook="FanDuel",
+    )
+    missing = Matchup(
+        home_team="UAB",
+        away_team="Samford",
+        start_time=datetime(2026, 10, 3, tzinfo=timezone.utc),
+        market_home_margin=None,
+        sportsbook=None,
+    )
+    stats = {
+        "Home": TeamStats("Home", 0.5, 70, 65, 0.3),
+        "Away": TeamStats("Away", 0.4, 68, 72, 0.35),
+        "UAB": TeamStats("UAB", 0.4, 70, 65, 0.32),
+    }
+
+    payload = build_payload(
+        date(2026, 10, 3),
+        datetime(2026, 10, 2, tzinfo=timezone.utc),
+        [matchup, missing],
+        stats,
+    )
+
+    assert payload["week_start"] == "2026-09-28"
+    assert payload["week_end"] == "2026-10-04"
+    assert len(payload["games"]) == 1
+    assert payload["games"][0]["projected_home_margin"] == 6.8
+    assert payload["games"][0]["sportsbook"] == "FanDuel"
+    assert payload["skipped"] == [
+        {"home_team": "UAB", "away_team": "Samford", "missing_stats": ["Samford"]}
+    ]
