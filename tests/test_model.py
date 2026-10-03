@@ -19,6 +19,7 @@ from gridiron_spread.sources import (
     completed_elo_games,
     fetch_sportsline_spreads,
     fetch_vegasinsider_spreads,
+    _canonical_team_name,
 )
 from scripts.build_site import build_payload
 from scripts.update_season import _select_mode
@@ -396,6 +397,35 @@ def test_weekly_matchups_supplement_schedule_games(monkeypatch):
 )
 def test_team_name_aliases_match_teamrankings(schedule_name, stats_name):
     assert team_key(schedule_name) == team_key(stats_name)
+
+
+def test_miami_program_names_are_canonical_and_distinct():
+    miami_fl = _canonical_team_name({"abbreviation": "MIA", "location": "Miami"})
+    miami_oh = _canonical_team_name({"abbreviation": "M-OH", "location": "Miami"})
+
+    assert miami_fl == "Miami (FL)"
+    assert miami_oh == "Miami (OH)"
+    assert team_key("Miami") == team_key(miami_fl)
+    assert team_key(miami_fl) != team_key(miami_oh)
+
+
+def test_project_matchup_matches_teamrankings_miami_to_florida_program():
+    matchup = Matchup(
+        home_team="Clemson",
+        away_team="Miami (FL)",
+        start_time=datetime(2026, 10, 3, tzinfo=timezone.utc),
+        market_home_margin=None,
+        sportsbook=None,
+    )
+    stats = {
+        "Clemson": TeamStats("Clemson", 0.4, 70, 65, 0.3),
+        "Miami": TeamStats("Miami", 0.5, 70, 65, 0.3),
+        "Miami (OH)": TeamStats("Miami (OH)", 0.2, 68, 72, 0.35),
+    }
+
+    projection = project_matchup(matchup, stats)
+
+    assert projection.away_points == pytest.approx((35 + 19.5) / 2)
 
 
 def test_team_key_normalizes_diacritics():

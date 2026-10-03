@@ -143,9 +143,9 @@ def fetch_team_stats(season_year: int | None = None) -> dict[str, TeamStats]:
 def _canonical_team_name(team: dict[str, object]) -> str:
     abbreviation = str(team.get("abbreviation", "")).upper()
     if abbreviation == "MIA":
-        return "Miami FL"
+        return "Miami (FL)"
     if abbreviation == "M-OH":
-        return "Miami OH"
+        return "Miami (OH)"
     location = str(team.get("location") or team.get("displayName") or "")
     if not location:
         raise ValueError(f"ESPN team entry is missing its name: {team!r}")
@@ -268,6 +268,7 @@ def _fetch_supplemental_team_events(
             for field in ("location", "displayName", "shortDisplayName", "abbreviation")
             if team.get(field)
         }
+        team_key_candidates.add(team_key(_canonical_team_name(team)))
         matched_keys = team_key_candidates & missing_team_keys
         team_id = team.get("id")
         if matched_keys and team_id is not None:

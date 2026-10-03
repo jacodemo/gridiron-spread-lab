@@ -19,6 +19,7 @@ def team_key(team: str) -> str:
         "floridaintl": "floridainternational",
         "georgiaso": "georgiasouthern",
         "jmadison": "jamesmadison",
+        "miami": "miamifl",
         "miamifl": "miamifl",
         "miamiflorida": "miamifl",
         "miamioh": "miamioh",
