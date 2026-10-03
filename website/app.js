@@ -68,20 +68,16 @@ function differenceClass(difference) {
   return "difference-neutral";
 }
 
-function hasListedSpread(game) {
-  const providerLines = Object.values(game.market_lines || {});
-  return providerLines.some((line) => typeof line === "number" && Number.isFinite(line))
-    || (typeof game.market_home_spread === "number" && Number.isFinite(game.market_home_spread));
-}
-
 function renderGame(game) {
   const homeTeam = escapeHtml(game.home_team);
   const awayTeam = escapeHtml(game.away_team);
-  const difference = game.market_home_spread === null || game.market_home_spread === undefined
+  const hasProjection = Number.isFinite(game.predicted_home_spread);
+  const hasMarketLine = Number.isFinite(game.market_home_spread);
+  const difference = !hasProjection || !hasMarketLine
     ? null
     : game.market_home_spread - game.predicted_home_spread;
   const differenceLabel = difference === null
-    ? '<span class="difference-value difference-missing">—</span><span class="difference-hint">No sportsbook line</span>'
+    ? `<span class="difference-value difference-missing">—</span><span class="difference-hint">${hasMarketLine ? "Model unavailable" : "Line pending"}</span>`
     : `<span class="difference-value ${differenceClass(difference)}">${signed(difference)}</span><span class="difference-hint">pts vs ${escapeHtml(game.sportsbook || "market")}</span>`;
   const lineCell = (provider) => {
     const line = game.market_lines?.[provider];
@@ -102,7 +98,7 @@ function renderGame(game) {
           <strong class="home-team">${homeTeam}<span class="home-indicator">HOME</span></strong>
         </div>
         <div class="spread-cell predicted-spread">
-          ${spreadLabel(game.home_team, game.away_team, game.predicted_home_spread)}
+          ${hasProjection ? spreadLabel(game.home_team, game.away_team, game.predicted_home_spread) : '<span class="market-unavailable">Model unavailable</span>'}
         </div>
         ${lineCell("FanDuel")}
         ${lineCell("DraftKings")}
@@ -111,13 +107,13 @@ function renderGame(game) {
         <div class="difference-cell">${differenceLabel}</div>
       </div>
       ${recommendation}
-      <details class="game-details">
+      ${hasProjection ? `<details class="game-details">
         <summary>How we got the predicted spread <span aria-hidden="true">＋</span></summary>
         <div class="team-math">
           <div><strong>${awayTeam}</strong><span>Offense ${formatNumber(game.away_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.away_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.home_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.home_stats.opponent_plays_per_game)} plays</span><span>Elo rating ${formatNumber(game.away_elo)} vs ${formatNumber(game.home_elo)}</span></div>
           <div><strong>${homeTeam}</strong><span>Offense ${formatNumber(game.home_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.home_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.away_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.away_stats.opponent_plays_per_game)} plays</span><span>Elo rating ${formatNumber(game.home_elo)} vs ${formatNumber(game.away_elo)}</span></div>
         </div>
-      </details>
+      </details>` : `<p class="prediction-note">Model projection unavailable: TeamRankings stats missing for ${escapeHtml((game.prediction_unavailable || []).join(", "))}.</p>`}
     </article>`;
 }
 
@@ -125,8 +121,11 @@ function visibleGames() {
   const query = searchInput.value.trim().toLocaleLowerCase();
   let result = games.filter((game) => {
     const matchesSearch = !query || `${game.home_team} ${game.away_team}`.toLocaleLowerCase().includes(query);
-    const hasLine = game.market_home_spread !== null && game.market_home_spread !== undefined;
-    const difference = hasLine ? game.market_home_spread - game.predicted_home_spread : null;
+    const hasLine = Number.isFinite(game.market_home_spread);
+    const hasProjection = Number.isFinite(game.predicted_home_spread);
+    const difference = hasLine && hasProjection
+      ? game.market_home_spread - game.predicted_home_spread
+      : null;
     const matchesFilter = activeFilter === "all"
       || (activeFilter === "edge" && difference !== null && Math.abs(difference) >= 3);
     return matchesSearch && matchesFilter;
@@ -134,8 +133,12 @@ function visibleGames() {
 
   if (sortSelect.value === "edge") {
     result.sort((a, b) => {
-      const aDifference = a.market_home_spread === null ? -Infinity : Math.abs(a.market_home_spread - a.predicted_home_spread);
-      const bDifference = b.market_home_spread === null ? -Infinity : Math.abs(b.market_home_spread - b.predicted_home_spread);
+      const aDifference = Number.isFinite(a.market_home_spread) && Number.isFinite(a.predicted_home_spread)
+        ? Math.abs(a.market_home_spread - a.predicted_home_spread)
+        : -Infinity;
+      const bDifference = Number.isFinite(b.market_home_spread) && Number.isFinite(b.predicted_home_spread)
+        ? Math.abs(b.market_home_spread - b.predicted_home_spread)
+        : -Infinity;
       return bDifference - aDifference;
     });
   } else if (sortSelect.value === "home") {
@@ -156,12 +159,13 @@ function renderGames() {
 }
 
 function updateSummary(data) {
-  const lined = games.filter((game) => game.market_home_spread !== null && game.market_home_spread !== undefined);
+  const lined = games.filter((game) => Number.isFinite(game.market_home_spread));
+  const comparable = lined.filter((game) => Number.isFinite(game.predicted_home_spread));
   const lineCount = games.reduce(
     (total, game) => total + Object.keys(game.market_lines || {}).length,
     0,
   );
-  const biggest = lined.reduce((best, game) => {
+  const biggest = comparable.reduce((best, game) => {
     const difference = game.market_home_spread - game.predicted_home_spread;
     return Math.abs(difference) > Math.abs(best.difference) ? { difference, game } : best;
   }, { difference: 0, game: null });
@@ -172,8 +176,8 @@ function updateSummary(data) {
   document.querySelector("#line-count").textContent = String(lineCount);
   document.querySelector("#all-count").textContent = games.length;
   document.querySelector("#edge-count").textContent = games.filter((game) => (
-    game.market_home_spread !== null
-    && game.market_home_spread !== undefined
+    Number.isFinite(game.market_home_spread)
+    && Number.isFinite(game.predicted_home_spread)
     && Math.abs(game.market_home_spread - game.predicted_home_spread) >= 3
   )).length;
   document.querySelector("#updated-label").textContent = formatUpdated(data.generated_at);
@@ -184,7 +188,7 @@ function updateSummary(data) {
   if (data.skipped.length) {
     const notice = document.querySelector("#skipped-notice");
     const missing = data.skipped.map((game) => `${game.away_team} at ${game.home_team} (missing ${game.missing_stats.join(", ")})`);
-    notice.textContent = `${data.skipped.length} matchup${data.skipped.length === 1 ? "" : "s"} omitted: ${missing.join("; ")}. TeamRankings stats were not available for every team.`;
+    notice.textContent = `Model projections unavailable for ${missing.join("; ")} because TeamRankings stats were missing. Scheduled games remain listed.`;
     notice.hidden = false;
   }
   renderSeasonRecord(data.season_record);
@@ -216,7 +220,7 @@ async function loadBoard() {
     const response = await fetch("./data.json", { cache: "no-store" });
     if (!response.ok) throw new Error(`Data request failed (${response.status})`);
     const data = await response.json();
-    games = data.games.filter(hasListedSpread);
+    games = data.games;
     updateSummary(data);
     renderGames();
   } catch (error) {

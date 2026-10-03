@@ -30,12 +30,12 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    matchups = fetch_weekly_matchups(args.date)
+    team_stats = fetch_team_stats(current_season_year(args.date))
+    matchups = fetch_weekly_matchups(args.date, team_stats.keys())
     if not matchups:
         print(f"No FBS matchups found for the week containing {args.date.isoformat()}.")
         return
 
-    team_stats = fetch_team_stats(current_season_year(args.date))
     elo_ratings = fetch_season_elo_ratings(
         current_season_year(args.date),
         args.date,

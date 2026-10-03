@@ -60,6 +60,44 @@ def build_payload(
                     "missing_stats": missing,
                 }
             )
+            market_lines = matchup.market_lines.copy()
+            if (
+                not market_lines
+                and matchup.market_home_margin is not None
+                and matchup.sportsbook is not None
+            ):
+                market_lines[matchup.sportsbook] = -matchup.market_home_margin
+            provider_priority = ("FanDuel", "DraftKings", "ESPN", "SportsLine")
+            sportsbook = matchup.sportsbook or next(
+                (name for name in provider_priority if name in market_lines),
+                None,
+            )
+            market_home_spread = (
+                -matchup.market_home_margin
+                if matchup.market_home_margin is not None
+                else market_lines.get(sportsbook)
+            )
+            games.append(
+                {
+                    "event_id": matchup.event_id,
+                    "home_team": matchup.home_team,
+                    "away_team": matchup.away_team,
+                    "start_time": matchup.start_time.isoformat(),
+                    "predicted_home_spread": None,
+                    "market_home_spread": (
+                        round(market_home_spread, 1)
+                        if market_home_spread is not None
+                        else None
+                    ),
+                    "sportsbook": sportsbook,
+                    "market_lines": {
+                        name: round(spread, 1)
+                        for name, spread in market_lines.items()
+                    },
+                    "prediction_unavailable": missing,
+                    "recommendation": None,
+                }
+            )
             continue
 
         market_lines = matchup.market_lines.copy()
@@ -149,7 +187,7 @@ def build_site(reference_date: date | None = None) -> Path:
     reference_date = reference_date or date.today()
     generated_at = datetime.now(timezone.utc)
     stats = fetch_team_stats(current_season_year(reference_date))
-    matchups = fetch_weekly_matchups(reference_date)
+    matchups = fetch_weekly_matchups(reference_date, stats.keys())
     season = current_season_year(reference_date)
     if SEASON_STATE_PATH.exists():
         season_state = json.loads(SEASON_STATE_PATH.read_text(encoding="utf-8"))

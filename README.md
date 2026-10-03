@@ -67,13 +67,13 @@ The model uses these TeamRankings season columns:
 - `opponent-plays-per-game`
 - `opponent-points-per-play`
 
-The current week's FBS schedule, game results, and ESPN-feed lines come from ESPN's public scoreboard feed. The board displays FanDuel and DraftKings lines from ESPN and SportsLine data, the ESPN feed's listed line, and SportsLine consensus independently whenever each is available. Matchups without a spread from any source are omitted from the board; missing lines are still shown per source for the games that do have a line. The recommendation and tracked result use one available line in this order: FanDuel, DraftKings, ESPN feed, then SportsLine consensus. The difference is the selected market's home spread minus the predicted home spread: a positive value favors the home side, while a negative value favors the away side. A recommendation is shown when the difference is at least three points in absolute value and a sportsbook spread is available. The season record saves one latest qualifying recommendation per game before kickoff and grades it against the saved line as a win, loss, or push. It is an informational model record, not a guarantee or betting advice.
+The current week's FBS schedule, game results, and ESPN-feed lines come from ESPN. The weekly scoreboard is supplemented from active TeamRankings teams' ESPN schedules so upcoming games missing from the scoreboard still appear. The board displays FanDuel and DraftKings lines from ESPN and SportsLine data, the ESPN feed's listed line, and SportsLine consensus independently whenever each is available. Scheduled games remain visible when lines are pending, and games missing TeamRankings stats are shown without a model projection or recommendation. The recommendation and tracked result use one available line in this order: FanDuel, DraftKings, ESPN feed, then SportsLine consensus. The difference is the selected market's home spread minus the predicted home spread: a positive value favors the home side, while a negative value favors the away side. A recommendation is shown when the difference is at least three points in absolute value and a sportsbook spread is available. The season record saves one latest qualifying recommendation per game before kickoff and grades it against the saved line as a win, loss, or push. It is an informational model record, not a guarantee or betting advice.
 
 All inputs are live external data. A missing or changed source table raises an error instead of silently substituting sample values.
 
 ## Website features
 
-- Search teams and filter the listed-spread games to differences of at least three points.
+- Search scheduled games and filter to those with a model-to-market difference of at least three points.
 - Sort by kickoff, home team, or absolute spread difference.
 - See qualifying recommended bets and expand each game to inspect the TeamRankings averages and Elo ratings behind its predicted spread.
 - Compare FanDuel, DraftKings, the ESPN feed line, and SportsLine consensus independently when available.

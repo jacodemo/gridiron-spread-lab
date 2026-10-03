@@ -1,13 +1,24 @@
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime
 
 
 def team_key(team: str) -> str:
     name = team.casefold().replace("&", "and")
+    name = "".join(
+        character
+        for character in unicodedata.normalize("NFKD", name)
+        if not unicodedata.combining(character)
+    )
     name = re.sub(r"\bst\.?\b", "state", name)
     name = re.sub(r"[^a-z0-9]+", "", name)
     aliases = {
+        "coastalcar": "coastalcarolina",
+        "ecarolina": "eastcarolina",
+        "floridaintl": "floridainternational",
+        "georgiaso": "georgiasouthern",
+        "jmadison": "jamesmadison",
         "miamifl": "miamifl",
         "miamiflorida": "miamifl",
         "miamioh": "miamioh",
@@ -18,6 +29,8 @@ def team_key(team: str) -> str:
         "pitt": "pittsburgh",
         "southernmiss": "southernmississippi",
         "southernmississippi": "southernmississippi",
+        "salabama": "southalabama",
+        "sflorida": "southflorida",
         "texasam": "texasam",
         "texasamaggies": "texasam",
         "appstate": "appalachianstate",

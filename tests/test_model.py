@@ -259,6 +259,63 @@ def test_weekly_matchups_collect_lines_from_each_available_source(monkeypatch):
     assert matchups[2].sportsbook is None
 
 
+def test_weekly_matchups_supplement_schedule_games(monkeypatch):
+    schedule_event = {
+        "id": "401856818",
+        "date": "2026-10-03T23:00Z",
+        "competitions": [
+            {
+                "competitors": [
+                    {"homeAway": "home", "team": {"location": "TCU"}},
+                    {"homeAway": "away", "team": {"location": "BYU"}},
+                ],
+                "odds": [],
+            }
+        ],
+    }
+    teams_payload = {
+        "sports": [
+            {
+                "leagues": [
+                    {
+                        "teams": [
+                            {"team": {"id": "2628", "location": "TCU", "isActive": True}},
+                            {"team": {"id": "252", "location": "BYU", "isActive": True}},
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    requested_schedules: list[str] = []
+
+    def fetch(url):
+        if url.startswith(sources.ESPN_SCOREBOARD_URL):
+            return json.dumps({"events": []})
+        if url == f"{sources.ESPN_TEAMS_URL}?limit=1000":
+            return json.dumps(teams_payload)
+        if url.startswith(f"{sources.ESPN_TEAMS_URL}/"):
+            requested_schedules.append(url)
+            return json.dumps({"events": [schedule_event]})
+        if url == sources.SPORTSLINE_ODDS_URL:
+            return _sportsline_html()
+        raise AssertionError(f"Unexpected source URL: {url}")
+
+    monkeypatch.setattr(sources, "_fetch_text", fetch)
+    matchups = sources.fetch_weekly_matchups(
+        date(2026, 10, 3),
+        team_names=("TCU", "BYU"),
+    )
+
+    assert len(matchups) == 1
+    assert matchups[0].event_id == "401856818"
+    assert matchups[0].home_team == "TCU"
+    assert matchups[0].away_team == "BYU"
+    assert matchups[0].market_home_margin is None
+    assert matchups[0].market_lines == {}
+    assert len(requested_schedules) == 2
+
+
 @pytest.mark.parametrize(
     ("schedule_name", "stats_name"),
     [
@@ -270,6 +327,10 @@ def test_weekly_matchups_collect_lines_from_each_available_source(monkeypatch):
 )
 def test_team_name_aliases_match_teamrankings(schedule_name, stats_name):
     assert team_key(schedule_name) == team_key(stats_name)
+
+
+def test_team_key_normalizes_diacritics():
+    assert team_key("San José State") == team_key("San Jose St")
 
 
 def test_website_payload_serializes_projection_and_skipped_games():
@@ -303,7 +364,7 @@ def test_website_payload_serializes_projection_and_skipped_games():
 
     assert payload["week_start"] == "2026-09-28"
     assert payload["week_end"] == "2026-10-04"
-    assert len(payload["games"]) == 1
+    assert len(payload["games"]) == 2
     assert payload["games"][0]["predicted_home_spread"] == -3.4
     assert payload["games"][0]["market_home_spread"] == -3.5
     assert "home_points" not in payload["games"][0]
@@ -315,6 +376,9 @@ def test_website_payload_serializes_projection_and_skipped_games():
         "DraftKings": -4.0,
     }
     assert payload["games"][0]["home_elo"] == 1500
+    assert payload["games"][1]["predicted_home_spread"] is None
+    assert payload["games"][1]["market_home_spread"] is None
+    assert payload["games"][1]["prediction_unavailable"] == ["Samford"]
     assert payload["season_record"]["wins"] == 0
     assert payload["skipped"] == [
         {"home_team": "UAB", "away_team": "Samford", "missing_stats": ["Samford"]}
@@ -408,6 +472,8 @@ def test_recommended_bet_picks_model_favored_side_at_three_points():
     game["predicted_home_spread"] = -6
     assert recommended_bet(game)["difference"] == 3
     game["predicted_home_spread"] = -5.9
+    assert recommended_bet(game) is None
+    game["predicted_home_spread"] = None
     assert recommended_bet(game) is None
 
 

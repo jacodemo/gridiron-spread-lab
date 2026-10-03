@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from html.parser import HTMLParser
+from typing import Iterable
 from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -19,6 +20,7 @@ TEAMRANKINGS_URLS = {
     "opponent_points_per_play": "https://www.teamrankings.com/college-football/stat/opponent-points-per-play",
 }
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard"
+ESPN_TEAMS_URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams"
 SPORTSLINE_ODDS_URL = "https://www.sportsline.com/college-football/odds/"
 USER_AGENT = "GridironSpreadLab/0.1 (+college football matchup analysis)"
 ELO_K_FACTOR = 20
@@ -184,6 +186,120 @@ def fetch_scoreboard_events(start_date: date, end_date: date) -> list[dict[str, 
         unique_events.values(),
         key=lambda event: str(event.get("date", "")),
     )
+
+
+def _fetch_team_schedule_events(
+    team_id: str,
+    season_year: int,
+    start_date: date,
+    end_date: date,
+) -> list[dict[str, object]]:
+    params = urlencode({"season": str(season_year), "seasontype": "2"})
+    payload = json.loads(
+        _fetch_text(f"{ESPN_TEAMS_URL}/{team_id}/schedule?{params}")
+    )
+    events = payload.get("events", [])
+    if not isinstance(events, list):
+        raise ValueError(f"ESPN returned an invalid team schedule for team {team_id}")
+
+    week_events: list[dict[str, object]] = []
+    for event in events:
+        if not isinstance(event, dict) or not isinstance(event.get("date"), str):
+            continue
+        event_date = datetime.fromisoformat(
+            str(event["date"]).replace("Z", "+00:00")
+        ).date()
+        if start_date <= event_date <= end_date:
+            week_events.append(event)
+    return week_events
+
+
+def _fetch_supplemental_team_events(
+    scheduled_events: list[dict[str, object]],
+    team_names: Iterable[str],
+    season_year: int,
+    start_date: date,
+    end_date: date,
+) -> list[dict[str, object]]:
+    scheduled_team_keys: set[str] = set()
+    for event in scheduled_events:
+        competitions = event.get("competitions")
+        if not isinstance(competitions, list) or not competitions:
+            continue
+        competition = competitions[0]
+        if not isinstance(competition, dict):
+            continue
+        competitors = competition.get("competitors")
+        if not isinstance(competitors, list):
+            continue
+        for competitor in competitors:
+            team = competitor.get("team") if isinstance(competitor, dict) else None
+            if isinstance(team, dict):
+                scheduled_team_keys.add(team_key(_canonical_team_name(team)))
+    missing_team_keys = {
+        team_key(name) for name in team_names
+    } - scheduled_team_keys
+    if not missing_team_keys:
+        return []
+
+    params = urlencode({"limit": "1000"})
+    payload = json.loads(_fetch_text(f"{ESPN_TEAMS_URL}?{params}"))
+    sports = payload.get("sports")
+    if not isinstance(sports, list) or not sports:
+        raise ValueError("ESPN returned an invalid college-football team index")
+    leagues = sports[0].get("leagues") if isinstance(sports[0], dict) else None
+    if not isinstance(leagues, list) or not leagues:
+        raise ValueError("ESPN team index did not include a football league")
+    entries = leagues[0].get("teams") if isinstance(leagues[0], dict) else None
+    if not isinstance(entries, list):
+        raise ValueError("ESPN team index did not include its team list")
+
+    team_ids: set[str] = set()
+    matched_team_keys: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        team = entry.get("team")
+        if not isinstance(team, dict) or team.get("isActive") is False:
+            continue
+        team_key_candidates = {
+            team_key(str(team[field]))
+            for field in ("location", "displayName", "shortDisplayName", "abbreviation")
+            if team.get(field)
+        }
+        matched_keys = team_key_candidates & missing_team_keys
+        team_id = team.get("id")
+        if matched_keys and team_id is not None:
+            team_ids.add(str(team_id))
+            matched_team_keys.update(matched_keys)
+
+    unmatched_team_keys = missing_team_keys - matched_team_keys
+    if unmatched_team_keys:
+        raise ValueError(
+            "ESPN team index is missing active TeamRankings teams: "
+            + ", ".join(sorted(unmatched_team_keys))
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        schedule_lists = list(
+            executor.map(
+                lambda team_id: _fetch_team_schedule_events(
+                    team_id,
+                    season_year,
+                    start_date,
+                    end_date,
+                ),
+                sorted(team_ids),
+            )
+        )
+
+    events_by_id = {
+        str(event["id"]): event
+        for events in schedule_lists
+        for event in events
+        if event.get("id") is not None
+    }
+    return sorted(events_by_id.values(), key=lambda event: str(event.get("date", "")))
 
 
 def completed_elo_games(events: list[dict[str, object]]) -> list[EloGame]:
@@ -414,11 +530,38 @@ def fetch_sportsline_spreads(
     return _sportsline_spreads(_sportsline_apollo_state(html))
 
 
-def fetch_weekly_matchups(reference_date: date | None = None) -> list[Matchup]:
+def fetch_weekly_matchups(
+    reference_date: date | None = None,
+    team_names: Iterable[str] | None = None,
+) -> list[Matchup]:
     reference_date = reference_date or date.today()
     week_start = reference_date - timedelta(days=reference_date.weekday())
     week_end = week_start + timedelta(days=6)
     events = fetch_scoreboard_events(week_start, week_end)
+    if team_names is not None:
+        supplemental_events = _fetch_supplemental_team_events(
+            events,
+            team_names,
+            current_season_year(reference_date),
+            week_start,
+            week_end,
+        )
+        events_by_id = {
+            str(event["id"]): event
+            for event in supplemental_events
+            if event.get("id") is not None
+        }
+        events_by_id.update(
+            {
+                str(event["id"]): event
+                for event in events
+                if event.get("id") is not None
+            }
+        )
+        events = sorted(
+            events_by_id.values(),
+            key=lambda event: str(event.get("date", "")),
+        )
 
     matchups: list[Matchup] = []
     for event in events:

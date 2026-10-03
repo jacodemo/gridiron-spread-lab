@@ -59,7 +59,7 @@ def update_season(mode: str, now: datetime | None = None) -> bool:
         from gridiron_spread.model import ELO_POINTS_PER_RATING
 
         team_stats = fetch_team_stats(season)
-        matchups = fetch_weekly_matchups(local_date)
+        matchups = fetch_weekly_matchups(local_date, team_stats.keys())
         payload = build_payload(
             local_date,
             now,

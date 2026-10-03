@@ -104,6 +104,7 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
 .recommended-bet strong { color: #354b2e; font: 700 12px "Manrope", sans-serif; }
 .recommended-bet small { color: #858f7b; font: 9px "DM Mono", monospace; }
 .game-details { border-top: 1px solid #f0f0ed; }
+.prediction-note { margin: 0; padding: 9px 17px; color: #848e8d; font-size: 10px; }
 .game-details summary { display: flex; justify-content: space-between; padding: 9px 17px; color: #848e8d; cursor: pointer; font-size: 10px; list-style: none; }
 .game-details summary::-webkit-details-marker { display: none; }
 .game-details[open] summary { color: #557344; }
@@ -219,6 +220,7 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
   .difference-cell { grid-column: 1 / -1; grid-row: 4; align-items: flex-start; padding: 8px 0 0; border-top: 1px solid #f0f0ed; }
   .team-math { grid-template-columns: 1fr; gap: 8px; padding: 3px 11px 11px; }
   .game-details summary { padding-right: 13px; padding-left: 13px; }
+  .prediction-note { padding-right: 13px; padding-left: 13px; }
   .method-section { grid-template-columns: 1fr; gap: 22px; margin-top: 59px; padding: 36px 0; }
   .record-section { margin-top: 51px; padding: 33px 0 37px; }
   .record-heading { align-items: flex-start; flex-direction: column; gap: 13px; }

@@ -10,9 +10,10 @@ BET_THRESHOLD_POINTS = 3.0
 
 def recommended_bet(game: dict[str, Any]) -> dict[str, Any] | None:
     market_spread = game.get("market_home_spread")
-    if market_spread is None:
+    predicted_spread = game.get("predicted_home_spread")
+    if market_spread is None or predicted_spread is None:
         return None
-    difference = float(market_spread) - float(game["predicted_home_spread"])
+    difference = float(market_spread) - float(predicted_spread)
     if abs(difference) < BET_THRESHOLD_POINTS:
         return None
 
