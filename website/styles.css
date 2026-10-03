@@ -75,12 +75,12 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
 .sort-control { display: flex; align-items: center; gap: 8px; color: #92999e; font: 500 9px "DM Mono", monospace; letter-spacing: .07em; }
 .sort-control select { max-width: 125px; padding: 6px 22px 6px 7px; border: 0; color: #48525d; background: transparent; outline-color: #819d5c; cursor: pointer; font: 500 11px "DM Sans", sans-serif; }
 .board-scroll { overflow-x: auto; }
-.board-columns { display: grid; grid-template-columns: minmax(215px, 1.5fr) minmax(130px, .9fr) repeat(4, minmax(105px, .8fr)) minmax(110px, .75fr); gap: 12px; padding: 12px 17px; color: #929aa1; font: 500 9px "DM Mono", monospace; letter-spacing: .09em; }
+.board-columns { display: grid; grid-template-columns: minmax(215px, 1.5fr) minmax(130px, .9fr) repeat(5, minmax(105px, .8fr)) minmax(110px, .75fr); gap: 12px; padding: 12px 17px; color: #929aa1; font: 500 9px "DM Mono", monospace; letter-spacing: .09em; }
 .board-columns span:nth-child(n+2) { padding-left: 7px; }
 .game-list { display: grid; gap: 9px; }
 .game-card { overflow: hidden; border: 1px solid #e7e8e4; border-radius: 8px; background: var(--white); transition: border-color .15s, transform .15s; }
 .game-card:hover { border-color: #cdd4c2; transform: translateY(-1px); }
-.game-primary { display: grid; grid-template-columns: minmax(215px, 1.5fr) minmax(130px, .9fr) repeat(4, minmax(105px, .8fr)) minmax(110px, .75fr); gap: 12px; min-height: 91px; align-items: center; padding: 14px 17px; }
+.game-primary { display: grid; grid-template-columns: minmax(215px, 1.5fr) minmax(130px, .9fr) repeat(5, minmax(105px, .8fr)) minmax(110px, .75fr); gap: 12px; min-height: 91px; align-items: center; padding: 14px 17px; }
 .matchup { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
 .kickoff { margin-bottom: 2px; color: #8c949c; font: 10px "DM Mono", monospace; }
 .away-team, .home-team { display: flex; align-items: center; gap: 8px; overflow: hidden; max-width: 100%; color: #26354a; font: 600 13px "Manrope", sans-serif; }
@@ -217,7 +217,8 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
   .provider-draftkings { grid-column: 2; grid-row: 2; align-items: flex-end; }
   .provider-espn { grid-column: 1; grid-row: 3; }
   .provider-sportsline { grid-column: 2; grid-row: 3; align-items: flex-end; }
-  .difference-cell { grid-column: 1 / -1; grid-row: 4; align-items: flex-start; padding: 8px 0 0; border-top: 1px solid #f0f0ed; }
+  .provider-vegasinsider { grid-column: 1; grid-row: 4; }
+  .difference-cell { grid-column: 1 / -1; grid-row: 5; align-items: flex-start; padding: 8px 0 0; border-top: 1px solid #f0f0ed; }
   .team-math { grid-template-columns: 1fr; gap: 8px; padding: 3px 11px 11px; }
   .game-details summary { padding-right: 13px; padding-left: 13px; }
   .prediction-note { padding-right: 13px; padding-left: 13px; }

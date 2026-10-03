@@ -104,6 +104,7 @@ function renderGame(game) {
         ${lineCell("DraftKings")}
         ${lineCell("ESPN")}
         ${lineCell("SportsLine")}
+        ${lineCell("VegasInsider")}
         <div class="difference-cell">${differenceLabel}</div>
       </div>
       ${recommendation}

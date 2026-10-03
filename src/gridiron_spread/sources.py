@@ -22,6 +22,7 @@ TEAMRANKINGS_URLS = {
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard"
 ESPN_TEAMS_URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams"
 SPORTSLINE_ODDS_URL = "https://www.sportsline.com/college-football/odds/"
+VEGASINSIDER_ODDS_URL = "https://www.vegasinsider.com/college-football/odds/las-vegas/"
 USER_AGENT = "GridironSpreadLab/0.1 (+college football matchup analysis)"
 ELO_K_FACTOR = 20
 
@@ -530,6 +531,174 @@ def fetch_sportsline_spreads(
     return _sportsline_spreads(_sportsline_apollo_state(html))
 
 
+class _VegasInsiderOddsParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.rows: list[dict[str, object]] = []
+        self.row: dict[str, object] | None = None
+        self.cell: dict[str, object] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if tag == "tr":
+            self.row = {"attrs": attributes, "cells": []}
+        elif self.row is not None and tag in {"td", "th"}:
+            self.cell = {
+                "tag": tag,
+                "attrs": attributes,
+                "parts": [],
+                "data_values": [],
+                "team_abbreviation": None,
+            }
+            cells = self.row["cells"]
+            assert isinstance(cells, list)
+            cells.append(self.cell)
+        elif self.cell is not None:
+            label = attributes.get("alt") or attributes.get("title")
+            if label:
+                parts = self.cell["parts"]
+                assert isinstance(parts, list)
+                parts.append(label)
+            if attributes.get("data-value"):
+                data_values = self.cell["data_values"]
+                assert isinstance(data_values, list)
+                data_values.append(attributes["data-value"])
+            if attributes.get("data-abbr"):
+                self.cell["team_abbreviation"] = attributes["data-abbr"]
+
+    def handle_data(self, data: str) -> None:
+        if self.cell is not None:
+            parts = self.cell["parts"]
+            assert isinstance(parts, list)
+            parts.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"td", "th"}:
+            self.cell = None
+        elif tag == "tr" and self.row is not None:
+            self.rows.append(self.row)
+            self.row = None
+
+
+def _vegasinsider_spreads(
+    html: str,
+) -> dict[tuple[str, str, date], float]:
+    parser = _VegasInsiderOddsParser()
+    parser.feed(html)
+    spreads: dict[tuple[str, str, date], float] = {}
+    current_date: date | None = None
+    consensus_column: int | None = None
+    pending_team_rows: list[dict[str, object]] = []
+
+    for row in parser.rows:
+        cells = row.get("cells")
+        if not isinstance(cells, list):
+            continue
+
+        game_date: date | None = None
+        header_consensus: int | None = None
+        for index, cell in enumerate(cells):
+            if not isinstance(cell, dict):
+                continue
+            attrs = cell.get("attrs")
+            data_values = cell.get("data_values")
+            parts = cell.get("parts")
+            if not isinstance(attrs, dict):
+                continue
+            if "game-time" in str(attrs.get("class", "")).split():
+                if isinstance(data_values, list) and data_values:
+                    try:
+                        game_date = datetime.fromisoformat(
+                            str(data_values[0]).replace("Z", "+00:00")
+                        ).date()
+                    except ValueError:
+                        game_date = None
+            if (
+                cell.get("tag") == "th"
+                and "book-logo" in str(attrs.get("class", "")).split()
+                and isinstance(parts, list)
+                and " ".join("".join(map(str, parts)).split()).casefold()
+                == "consensus"
+            ):
+                header_consensus = index
+
+        if game_date is not None:
+            current_date = game_date
+            consensus_column = header_consensus
+            pending_team_rows = []
+            continue
+
+        team_cell = next(
+            (
+                cell
+                for cell in cells
+                if isinstance(cell, dict)
+                and isinstance(cell.get("attrs"), dict)
+                and "game-team" in str(cell["attrs"].get("class", "")).split()
+            ),
+            None,
+        )
+        team_abbreviation = (
+            team_cell.get("team_abbreviation")
+            if isinstance(team_cell, dict)
+            else None
+        )
+        if not isinstance(team_abbreviation, str):
+            if pending_team_rows:
+                pending_team_rows = []
+            continue
+
+        odds_cells = [
+            cell
+            for cell in cells
+            if isinstance(cell, dict)
+            and isinstance(cell.get("attrs"), dict)
+            and "game-odds" in str(cell["attrs"].get("class", "")).split()
+        ]
+        pending_team_rows.append(
+            {
+                "team": team_abbreviation,
+                "odds": odds_cells,
+            }
+        )
+        if len(pending_team_rows) != 2:
+            continue
+
+        if current_date is not None and consensus_column is not None:
+            away, home = pending_team_rows
+            home_odds = home.get("odds")
+            if isinstance(home_odds, list) and consensus_column - 1 < len(home_odds):
+                consensus_cell = home_odds[consensus_column - 1]
+                parts = consensus_cell.get("parts") if isinstance(consensus_cell, dict) else None
+                value_parts = " ".join(map(str, parts or [])).split()
+                value = value_parts[0] if value_parts else ""
+                if value.casefold() in {"pk", "pick'em", "pick’em"}:
+                    spread = 0.0
+                else:
+                    try:
+                        spread = float(value)
+                    except ValueError:
+                        spread = None
+                if spread is not None:
+                    key = (
+                        team_key(str(home["team"])),
+                        team_key(str(away["team"])),
+                        current_date,
+                    )
+                    spreads.setdefault(key, spread)
+        pending_team_rows = []
+
+    return spreads
+
+
+def fetch_vegasinsider_spreads(
+    html: str | None = None,
+) -> dict[tuple[str, str, date], float]:
+    if html is None:
+        html = _fetch_text(VEGASINSIDER_ODDS_URL)
+    return _vegasinsider_spreads(html)
+
+
 def fetch_weekly_matchups(
     reference_date: date | None = None,
     team_names: Iterable[str] | None = None,
@@ -597,20 +766,53 @@ def fetch_weekly_matchups(
         )
 
     sportsline_spreads = fetch_sportsline_spreads() if matchups else {}
-    provider_priority = ("FanDuel", "DraftKings", "ESPN", "SportsLine")
+    matchup_keys = {
+        (
+            team_key(matchup.home_team),
+            team_key(matchup.away_team),
+            matchup.start_time.date(),
+        )
+        for matchup in matchups
+    }
+    unresolved_keys = {
+        (
+            team_key(matchup.home_team),
+            team_key(matchup.away_team),
+            matchup.start_time.date(),
+        )
+        for matchup in matchups
+        if not matchup.market_lines
+        and (
+            team_key(matchup.home_team),
+            team_key(matchup.away_team),
+            matchup.start_time.date(),
+        )
+        not in sportsline_spreads
+    }
+    vegasinsider_spreads = (
+        {
+            key: spread
+            for key, spread in fetch_vegasinsider_spreads().items()
+            if key in matchup_keys
+        }
+        if unresolved_keys
+        else {}
+    )
+    provider_priority = ("FanDuel", "DraftKings", "ESPN", "SportsLine", "VegasInsider")
     completed_matchups: list[Matchup] = []
     for matchup in matchups:
         lines = matchup.market_lines.copy()
-        sportsline_lines = sportsline_spreads.get(
-            (
-                team_key(matchup.home_team),
-                team_key(matchup.away_team),
-                matchup.start_time.date(),
-            ),
-            {},
+        game_key = (
+            team_key(matchup.home_team),
+            team_key(matchup.away_team),
+            matchup.start_time.date(),
         )
+        sportsline_lines = sportsline_spreads.get(game_key, {})
         for name, value in sportsline_lines.items():
             lines.setdefault(name, value)
+        vegasinsider_spread = vegasinsider_spreads.get(game_key)
+        if not lines and vegasinsider_spread is not None:
+            lines["VegasInsider"] = vegasinsider_spread
         selected_source = next((name for name in provider_priority if name in lines), None)
         selected_home_spread = lines.get(selected_source) if selected_source else None
         completed_matchups.append(

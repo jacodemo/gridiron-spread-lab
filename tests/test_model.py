@@ -18,6 +18,7 @@ from gridiron_spread.sources import (
     calculate_elo_ratings,
     completed_elo_games,
     fetch_sportsline_spreads,
+    fetch_vegasinsider_spreads,
 )
 from scripts.build_site import build_payload
 from scripts.update_season import _select_mode
@@ -166,6 +167,30 @@ def _sportsline_html() -> str:
     return f"<script>self.__next_f.push([1,{json.dumps(flight_data)}])</script>"
 
 
+def _vegasinsider_html() -> str:
+    return """
+    <table>
+      <tr>
+        <td class="game-time"><span data-value="2026-10-03T23:00:00Z"></span></td>
+        <th class="book-logo">Open</th>
+        <th class="book-logo">Consensus</th>
+      </tr>
+      <tr class="divided">
+        <td class="game-team"><a class="team-name" data-abbr="BYU">BYU</a></td>
+        <td class="game-odds"><span class="data-value">-5.5</span><small>-110</small></td>
+        <td class="game-odds"><span class="data-value">-6</span><small>-110</small></td>
+        <td class="game-odds blank"></td>
+      </tr>
+      <tr class="footer">
+        <td class="game-team"><a class="team-name" data-abbr="TCU">TCU</a></td>
+        <td class="game-odds"><span class="data-value">+5.5</span><small>-110</small></td>
+        <td class="game-odds"><span class="data-value">+6</span><small>-110</small></td>
+        <td class="game-odds blank"></td>
+      </tr>
+    </table>
+    """
+
+
 def test_sportsline_parser_reads_consensus_home_spread():
     assert fetch_sportsline_spreads(_sportsline_html()) == {
         ("home", "away", date(2026, 10, 3)): {
@@ -173,6 +198,12 @@ def test_sportsline_parser_reads_consensus_home_spread():
             "DraftKings": 4.0,
             "SportsLine": 4.5,
         }
+    }
+
+
+def test_vegasinsider_parser_reads_home_consensus_spread():
+    assert fetch_vegasinsider_spreads(_vegasinsider_html()) == {
+        ("tcu", "byu", date(2026, 10, 3)): 6.0,
     }
 
 
@@ -237,6 +268,8 @@ def test_weekly_matchups_collect_lines_from_each_available_source(monkeypatch):
             return json.dumps({"events": events if "dates=20261003" in url else []})
         if url == sources.SPORTSLINE_ODDS_URL:
             return _sportsline_html()
+        if url == sources.VEGASINSIDER_ODDS_URL:
+            return "<html></html>"
         raise AssertionError(f"Unexpected source URL: {url}")
 
     monkeypatch.setattr(sources, "_fetch_text", fetch)
@@ -257,6 +290,39 @@ def test_weekly_matchups_collect_lines_from_each_available_source(monkeypatch):
     }
     assert matchups[2].market_home_margin is None
     assert matchups[2].sportsbook is None
+
+
+def test_weekly_matchups_uses_vegasinsider_when_no_other_line_exists(monkeypatch):
+    event = {
+        "id": "401856818",
+        "date": "2026-10-03T23:00:00Z",
+        "competitions": [
+            {
+                "competitors": [
+                    {"homeAway": "home", "team": {"location": "TCU"}},
+                    {"homeAway": "away", "team": {"location": "BYU"}},
+                ],
+                "odds": [],
+            }
+        ],
+    }
+
+    def fetch(url):
+        if url.startswith(sources.ESPN_SCOREBOARD_URL):
+            return json.dumps({"events": [event]})
+        if url == sources.SPORTSLINE_ODDS_URL:
+            return _sportsline_html()
+        if url == sources.VEGASINSIDER_ODDS_URL:
+            return _vegasinsider_html()
+        raise AssertionError(f"Unexpected source URL: {url}")
+
+    monkeypatch.setattr(sources, "_fetch_text", fetch)
+    matchups = sources.fetch_weekly_matchups(date(2026, 10, 3))
+
+    assert len(matchups) == 1
+    assert matchups[0].market_lines == {"VegasInsider": 6.0}
+    assert matchups[0].market_home_margin == -6.0
+    assert matchups[0].sportsbook == "VegasInsider"
 
 
 def test_weekly_matchups_supplement_schedule_games(monkeypatch):
@@ -299,6 +365,8 @@ def test_weekly_matchups_supplement_schedule_games(monkeypatch):
             return json.dumps({"events": [schedule_event]})
         if url == sources.SPORTSLINE_ODDS_URL:
             return _sportsline_html()
+        if url == sources.VEGASINSIDER_ODDS_URL:
+            return _vegasinsider_html()
         raise AssertionError(f"Unexpected source URL: {url}")
 
     monkeypatch.setattr(sources, "_fetch_text", fetch)
@@ -311,8 +379,9 @@ def test_weekly_matchups_supplement_schedule_games(monkeypatch):
     assert matchups[0].event_id == "401856818"
     assert matchups[0].home_team == "TCU"
     assert matchups[0].away_team == "BYU"
-    assert matchups[0].market_home_margin is None
-    assert matchups[0].market_lines == {}
+    assert matchups[0].market_home_margin == -6.0
+    assert matchups[0].sportsbook == "VegasInsider"
+    assert matchups[0].market_lines == {"VegasInsider": 6.0}
     assert len(requested_schedules) == 2
 
 
