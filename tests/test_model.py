@@ -60,7 +60,7 @@ def test_project_matchup_blends_points_per_play_and_elo_margins():
     assert projection.home_points == pytest.approx((35 + 25.2) / 2)
     assert projection.away_points == pytest.approx((27.2 + 19.5) / 2)
     assert projection.elo_home_margin == pytest.approx(4)
-    assert projection.projected_home_margin == pytest.approx(3.96875)
+    assert projection.projected_home_margin == pytest.approx(4.0625)
 
 
 def test_project_matchup_uses_independent_projection_without_market_line():

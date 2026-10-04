@@ -4,7 +4,7 @@ const sortSelect = document.querySelector("#sort-select");
 const emptyState = document.querySelector("#empty-state");
 const filters = [...document.querySelectorAll(".filter-button")];
 let games = [];
-let modelParameters = { market_anchor_weight: 0.75 };
+let modelParameters = { market_anchor_weight: 0.70 };
 let activeFilter = "all";
 
 const formatNumber = (value) => Number(value).toFixed(1);
@@ -185,7 +185,7 @@ function updateSummary(data) {
   )).length;
   document.querySelector("#updated-label").textContent = formatUpdated(data.generated_at);
   modelParameters = {
-    market_anchor_weight: 0.75,
+    market_anchor_weight: 0.70,
     ...(data.model_parameters || {}),
   };
   const parameters = modelParameters;

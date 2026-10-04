@@ -124,7 +124,7 @@ class Projection:
     model_intercept: float = 0.0
     points_per_play_weight: float = 0.5
     elo_weight: float = 0.5
-    market_anchor_weight: float = 0.75
+    market_anchor_weight: float = 0.70
 
     @property
     def projected_home_margin(self) -> float:

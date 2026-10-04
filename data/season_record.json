@@ -164,9 +164,10 @@
     "parameters": {
       "elo_weight": 0.5,
       "intercept": 0.0,
+      "market_anchor_weight": 0.7,
       "points_per_play_weight": 0.5
     },
-    "reviewed_at": "2026-10-04T02:31:03.325638+00:00",
+    "reviewed_at": "2026-10-04T03:01:30.490974+00:00",
     "status": "warming_up",
     "weekly_review": null
   },
@@ -174,6 +175,7 @@
   "model_parameters": {
     "elo_weight": 0.5,
     "intercept": 0.0,
+    "market_anchor_weight": 0.7,
     "points_per_play_weight": 0.5
   },
   "recommendations": [
@@ -300,8 +302,9 @@
       "away_team": "Stanford",
       "difference": -10.1,
       "event_id": "401858251",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 3,
+      "final_home_score": 57,
+      "graded_at": "2026-10-04T03:01:30.490974+00:00",
       "home_spread": -14.5,
       "home_team": "Wake Forest",
       "recommended_at": "2026-10-02T22:28:26.461526+00:00",
@@ -309,7 +312,7 @@
       "sportsbook": "DraftKings",
       "spread": 14.5,
       "start_time": "2026-10-03T16:00:00+00:00",
-      "status": "pending",
+      "status": "loss",
       "team": "Stanford"
     },
     {
@@ -509,5 +512,5 @@
     }
   ],
   "season": 2026,
-  "updated_at": "2026-10-04T02:31:03.325638+00:00"
+  "updated_at": "2026-10-04T03:01:30.490974+00:00"
 }

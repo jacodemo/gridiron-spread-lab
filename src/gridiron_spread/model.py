@@ -9,7 +9,7 @@ DEFAULT_MODEL_PARAMETERS = {
     "intercept": 0.0,
     "points_per_play_weight": 0.5,
     "elo_weight": 0.5,
-    "market_anchor_weight": 0.75,
+    "market_anchor_weight": 0.70,
 }
 
 
