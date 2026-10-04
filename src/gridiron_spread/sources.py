@@ -550,11 +550,14 @@ class _VegasInsiderOddsParser(HTMLParser):
                 "parts": [],
                 "data_values": [],
                 "team_abbreviation": None,
+                "team_label": attributes.get("aria-label"),
             }
             cells = self.row["cells"]
             assert isinstance(cells, list)
             cells.append(self.cell)
         elif self.cell is not None:
+            if attributes.get("aria-label"):
+                self.cell["team_label"] = attributes["aria-label"]
             label = attributes.get("alt") or attributes.get("title")
             if label:
                 parts = self.cell["parts"]
@@ -583,10 +586,10 @@ class _VegasInsiderOddsParser(HTMLParser):
 
 def _vegasinsider_spreads(
     html: str,
-) -> dict[tuple[str, str, date], float]:
+) -> dict[tuple[str, str, date | None], float]:
     parser = _VegasInsiderOddsParser()
     parser.feed(html)
-    spreads: dict[tuple[str, str, date], float] = {}
+    spreads: dict[tuple[str, str, date | None], float] = {}
     current_date: date | None = None
     consensus_column: int | None = None
     pending_team_rows: list[dict[str, object]] = []
@@ -598,6 +601,7 @@ def _vegasinsider_spreads(
 
         game_date: date | None = None
         header_consensus: int | None = None
+        has_game_time = False
         for index, cell in enumerate(cells):
             if not isinstance(cell, dict):
                 continue
@@ -607,6 +611,7 @@ def _vegasinsider_spreads(
             if not isinstance(attrs, dict):
                 continue
             if "game-time" in str(attrs.get("class", "")).split():
+                has_game_time = True
                 if isinstance(data_values, list) and data_values:
                     try:
                         game_date = datetime.fromisoformat(
@@ -623,7 +628,7 @@ def _vegasinsider_spreads(
             ):
                 header_consensus = index
 
-        if game_date is not None:
+        if has_game_time:
             current_date = game_date
             consensus_column = header_consensus
             pending_team_rows = []
@@ -659,13 +664,18 @@ def _vegasinsider_spreads(
         pending_team_rows.append(
             {
                 "team": team_abbreviation,
+                "team_label": (
+                    team_cell.get("team_label")
+                    if isinstance(team_cell, dict)
+                    else None
+                ),
                 "odds": odds_cells,
             }
         )
         if len(pending_team_rows) != 2:
             continue
 
-        if current_date is not None and consensus_column is not None:
+        if consensus_column is not None:
             away, home = pending_team_rows
             home_odds = home.get("odds")
             if isinstance(home_odds, list) and consensus_column - 1 < len(home_odds):
@@ -682,8 +692,8 @@ def _vegasinsider_spreads(
                         spread = None
                 if spread is not None:
                     key = (
-                        team_key(str(home["team"])),
-                        team_key(str(away["team"])),
+                        team_key(str(home.get("team_label") or home["team"])),
+                        team_key(str(away.get("team_label") or away["team"])),
                         current_date,
                     )
                     spreads.setdefault(key, spread)
@@ -694,7 +704,7 @@ def _vegasinsider_spreads(
 
 def fetch_vegasinsider_spreads(
     html: str | None = None,
-) -> dict[tuple[str, str, date], float]:
+) -> dict[tuple[str, str, date | None], float]:
     if html is None:
         html = _fetch_text(VEGASINSIDER_ODDS_URL)
     return _vegasinsider_spreads(html)
@@ -775,6 +785,7 @@ def fetch_weekly_matchups(
         )
         for matchup in matchups
     }
+    matchup_pairs = {(home, away) for home, away, _ in matchup_keys}
     unresolved_keys = {
         (
             team_key(matchup.home_team),
@@ -795,6 +806,7 @@ def fetch_weekly_matchups(
             key: spread
             for key, spread in fetch_vegasinsider_spreads().items()
             if key in matchup_keys
+            or (key[2] is None and (key[0], key[1]) in matchup_pairs)
         }
         if unresolved_keys
         else {}
@@ -812,6 +824,8 @@ def fetch_weekly_matchups(
         for name, value in sportsline_lines.items():
             lines.setdefault(name, value)
         vegasinsider_spread = vegasinsider_spreads.get(game_key)
+        if vegasinsider_spread is None:
+            vegasinsider_spread = vegasinsider_spreads.get((*game_key[:2], None))
         if not lines and vegasinsider_spread is not None:
             lines["VegasInsider"] = vegasinsider_spread
         selected_source = next((name for name in provider_priority if name in lines), None)

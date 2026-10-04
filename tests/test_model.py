@@ -208,6 +208,87 @@ def test_vegasinsider_parser_reads_home_consensus_spread():
     }
 
 
+def test_vegasinsider_parser_keeps_final_game_lines_without_date():
+    html = """
+    <table>
+      <tr>
+        <td class="game-time">Final</td>
+        <th class="book-logo">Open</th>
+        <th class="book-logo">Consensus</th>
+      </tr>
+      <tr class="divided">
+        <td class="game-team"><a class="team-name" data-abbr="VAN" aria-label="Vanderbilt">Vanderbilt</a></td>
+        <td class="game-odds"><span class="data-value">+25.5</span></td>
+        <td class="game-odds"><span class="data-value">+25.5</span></td>
+        <td class="game-odds blank"></td>
+      </tr>
+      <tr class="footer">
+        <td class="game-team"><a class="team-name" data-abbr="UGA" aria-label="Georgia">Georgia</a></td>
+        <td class="game-odds"><span class="data-value">-25.5</span></td>
+        <td class="game-odds"><span class="data-value">-25.5</span></td>
+        <td class="game-odds blank"></td>
+      </tr>
+    </table>
+    """
+
+    assert fetch_vegasinsider_spreads(html) == {
+        ("georgia", "vanderbilt", None): -25.5,
+    }
+
+
+def test_weekly_matchups_uses_vegasinsider_lines_for_final_games(monkeypatch):
+    event = {
+        "id": "401858999",
+        "date": "2026-10-03T16:45:00Z",
+        "competitions": [
+            {
+                "competitors": [
+                    {"homeAway": "home", "team": {"location": "Georgia"}},
+                    {"homeAway": "away", "team": {"location": "Vanderbilt"}},
+                ],
+                "odds": [],
+            }
+        ],
+    }
+
+    def fetch(url):
+        if url.startswith(sources.ESPN_SCOREBOARD_URL):
+            return json.dumps({"events": [event]})
+        if url == sources.SPORTSLINE_ODDS_URL:
+            return _sportsline_html()
+        if url == sources.VEGASINSIDER_ODDS_URL:
+            return """
+            <table>
+              <tr>
+                <td class="game-time">Final</td>
+                <th class="book-logo">Open</th>
+                <th class="book-logo">Consensus</th>
+              </tr>
+              <tr class="divided">
+                <td class="game-team"><a class="team-name" data-abbr="VAN" aria-label="Vanderbilt">Vanderbilt</a></td>
+                <td class="game-odds"><span class="data-value">+25.5</span></td>
+                <td class="game-odds"><span class="data-value">+25.5</span></td>
+                <td class="game-odds blank"></td>
+              </tr>
+              <tr class="footer">
+                <td class="game-team"><a class="team-name" data-abbr="UGA" aria-label="Georgia">Georgia</a></td>
+                <td class="game-odds"><span class="data-value">-25.5</span></td>
+                <td class="game-odds"><span class="data-value">-25.5</span></td>
+                <td class="game-odds blank"></td>
+              </tr>
+            </table>
+            """
+        raise AssertionError(f"Unexpected source URL: {url}")
+
+    monkeypatch.setattr(sources, "_fetch_text", fetch)
+    matchups = sources.fetch_weekly_matchups(date(2026, 10, 3))
+
+    assert len(matchups) == 1
+    assert matchups[0].market_lines == {"VegasInsider": -25.5}
+    assert matchups[0].market_home_margin == 25.5
+    assert matchups[0].sportsbook == "VegasInsider"
+
+
 def test_espn_odds_parser_keeps_each_provider_and_feed_line():
     competition = {
         "odds": [
@@ -389,6 +470,28 @@ def test_weekly_matchups_supplement_schedule_games(monkeypatch):
 @pytest.mark.parametrize(
     ("schedule_name", "stats_name"),
     [
+        ("Ark", "Arkansas"),
+        ("Boise", "Boise State"),
+        ("CC", "Coastal Carolina"),
+        ("Clem", "Clemson"),
+        ("Colo", "Colorado"),
+        ("CSU", "Colorado State"),
+        ("FAU", "Florida Atlantic"),
+        ("GASO", "Georgia Southern"),
+        ("LT", "Louisiana Tech"),
+        ("MCN", "McNeese"),
+        ("MIA", "Miami (FL)"),
+        ("ORST", "Oregon State"),
+        ("TA&M", "Texas A&M"),
+        ("TEM", "Temple"),
+        ("TTU", "Texas Tech"),
+        ("TXSO", "Texas Southern"),
+        ("UL Monroe", "Louisiana Monroe"),
+        ("ULM", "Louisiana Monroe"),
+        ("USA", "South Alabama"),
+        ("USF", "South Florida"),
+        ("USU", "Utah State"),
+        ("WASH", "Washington"),
         ("Western Kentucky", "W Kentucky"),
         ("Central Michigan", "C Michigan"),
         ("Massachusetts", "UMass"),
