@@ -60,6 +60,26 @@ def test_project_matchup_blends_points_per_play_and_elo_margins():
     assert projection.home_points == pytest.approx((35 + 25.2) / 2)
     assert projection.away_points == pytest.approx((27.2 + 19.5) / 2)
     assert projection.elo_home_margin == pytest.approx(4)
+    assert projection.projected_home_margin == pytest.approx(3.96875)
+
+
+def test_project_matchup_uses_independent_projection_without_market_line():
+    home = TeamStats("Home", 0.5, 70, 65, 0.3)
+    away = TeamStats("Away", 0.4, 68, 72, 0.35)
+    matchup = Matchup(
+        home_team="Home",
+        away_team="Away",
+        start_time=datetime(2026, 10, 3, tzinfo=timezone.utc),
+        market_home_margin=None,
+        sportsbook=None,
+    )
+
+    projection = project_matchup(
+        matchup,
+        {"Home": home, "Away": away},
+        {"Home": 1600, "Away": 1500},
+    )
+
     assert projection.projected_home_margin == pytest.approx(5.375)
 
 
@@ -114,6 +134,37 @@ def test_model_calibration_requires_walk_forward_improvement():
     ]
 
 
+def test_market_anchored_calibration_validates_the_blended_forecast():
+    records = []
+    market_weight = DEFAULT_MODEL_PARAMETERS["market_anchor_weight"]
+    for index in range(100):
+        points_margin = ((index * 17) % 43) - 21
+        elo_margin = ((index * 11) % 19) - 9
+        market_margin = ((index * 13) % 47) - 23
+        independent_margin = 3 + 1.1 * points_margin + 0.05 * elo_margin
+        records.append(
+            {
+                "start_time": datetime(
+                    2026, 9, 1 + index // 10, tzinfo=timezone.utc
+                ).isoformat(),
+                "points_per_play_home_margin": points_margin,
+                "elo_home_margin": elo_margin,
+                "market_home_margin": market_margin,
+                "actual_home_margin": (
+                    market_weight * market_margin
+                    + (1 - market_weight) * independent_margin
+                ),
+            }
+        )
+
+    parameters, report = calibrate_model_parameters(records)
+
+    assert report["status"] == "updated"
+    assert report["calibrated_validation_mae"] < report["baseline_validation_mae"]
+    assert parameters["market_anchor_weight"] == market_weight
+    assert parameters["points_per_play_weight"] > 0.5
+
+
 def test_model_calibration_warms_up_without_changing_parameters():
     records = [
         {
@@ -152,6 +203,7 @@ def test_cli_uses_saved_parameters_for_the_current_season(tmp_path, monkeypatch)
         "intercept": 2.0,
         "points_per_play_weight": 0.8,
         "elo_weight": 0.2,
+        "market_anchor_weight": DEFAULT_MODEL_PARAMETERS["market_anchor_weight"],
     }
     assert cli._saved_model_parameters(2025) == DEFAULT_MODEL_PARAMETERS
 
@@ -666,7 +718,8 @@ def test_website_payload_serializes_projection_and_skipped_games():
     assert payload["week_start"] == "2026-09-28"
     assert payload["week_end"] == "2026-10-04"
     assert len(payload["games"]) == 2
-    assert payload["games"][0]["predicted_home_spread"] == -3.4
+    assert payload["games"][0]["predicted_home_spread"] == -3.5
+    assert payload["games"][0]["independent_model_home_spread"] == -3.4
     assert payload["games"][0]["market_home_spread"] == -3.5
     assert "home_points" not in payload["games"][0]
     assert "away_points" not in payload["games"][0]
@@ -877,7 +930,7 @@ def test_season_state_archives_and_grades_all_model_forecasts():
         "predicted_home_spread": -3,
         "points_per_play_home_spread": -4,
         "elo_home_spread": -2,
-        "market_home_spread": None,
+        "market_home_spread": -3.5,
         "sportsbook": None,
     }
     saved = update_season_state(
@@ -890,6 +943,7 @@ def test_season_state_archives_and_grades_all_model_forecasts():
         "refresh",
     )
     assert saved["model_history"][0]["status"] == "pending"
+    assert saved["model_history"][0]["market_home_margin"] == 3.5
     assert saved["recommendations"] == []
 
     graded = update_season_state(

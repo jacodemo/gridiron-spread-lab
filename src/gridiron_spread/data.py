@@ -124,12 +124,19 @@ class Projection:
     model_intercept: float = 0.0
     points_per_play_weight: float = 0.5
     elo_weight: float = 0.5
+    market_anchor_weight: float = 0.75
 
     @property
     def projected_home_margin(self) -> float:
         points_per_play_margin = self.home_points - self.away_points
-        return (
+        independent_margin = (
             self.model_intercept
             + self.points_per_play_weight * points_per_play_margin
             + self.elo_weight * self.elo_home_margin
+        )
+        if self.matchup.market_home_margin is None:
+            return independent_margin
+        return (
+            (1 - self.market_anchor_weight) * independent_margin
+            + self.market_anchor_weight * self.matchup.market_home_margin
         )

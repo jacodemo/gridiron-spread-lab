@@ -82,6 +82,8 @@ def update_season_state(
     parameters = state.get("model_parameters")
     if not isinstance(parameters, dict):
         parameters = DEFAULT_MODEL_PARAMETERS.copy()
+    else:
+        parameters = {**DEFAULT_MODEL_PARAMETERS, **parameters}
     model_history: dict[str, dict[str, Any]] = {
         _record_key(item): item
         for item in state.get("model_history", [])
@@ -128,6 +130,11 @@ def update_season_state(
                         "predicted_home_margin": -float(predicted_spread),
                         "points_per_play_home_margin": -float(points_spread),
                         "elo_home_margin": -float(elo_spread),
+                        "market_home_margin": (
+                            -float(game["market_home_spread"])
+                            if isinstance(game.get("market_home_spread"), (int, float))
+                            else None
+                        ),
                         "parameters": parameters.copy(),
                         "status": "pending",
                         "actual_home_margin": None,

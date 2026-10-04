@@ -53,6 +53,12 @@ def build_payload(
             state_parameters.get("points_per_play_weight", 0.5)
         ),
         "elo_weight": float(state_parameters.get("elo_weight", 0.5)),
+        "market_anchor_weight": float(
+            state_parameters.get(
+                "market_anchor_weight",
+                DEFAULT_MODEL_PARAMETERS["market_anchor_weight"],
+            )
+        ),
     }
     games: list[dict[str, object]] = []
     skipped: list[dict[str, object]] = []
@@ -136,6 +142,15 @@ def build_payload(
             "away_team": matchup.away_team,
             "start_time": matchup.start_time.isoformat(),
             "predicted_home_spread": round(-projection.projected_home_margin, 1),
+            "independent_model_home_spread": round(
+                -(
+                    projection.model_intercept
+                    + projection.points_per_play_weight
+                    * (projection.home_points - projection.away_points)
+                    + projection.elo_weight * projection.elo_home_margin
+                ),
+                1,
+            ),
             "points_per_play_home_spread": round(
                 -(projection.home_points - projection.away_points), 1
             ),

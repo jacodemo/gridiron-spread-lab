@@ -4,6 +4,7 @@ const sortSelect = document.querySelector("#sort-select");
 const emptyState = document.querySelector("#empty-state");
 const filters = [...document.querySelectorAll(".filter-button")];
 let games = [];
+let modelParameters = { market_anchor_weight: 0.75 };
 let activeFilter = "all";
 
 const formatNumber = (value) => Number(value).toFixed(1);
@@ -110,6 +111,7 @@ function renderGame(game) {
       ${recommendation}
       ${hasProjection ? `<details class="game-details">
         <summary>How we got the predicted spread <span aria-hidden="true">＋</span></summary>
+        ${Number.isFinite(game.independent_model_home_spread) && hasMarketLine ? `<p class="prediction-note">Independent projection: ${spreadLabel(game.home_team, game.away_team, game.independent_model_home_spread)} · forecast is anchored ${formatNumber(modelParameters.market_anchor_weight * 100)}% to the selected market line.</p>` : ""}
         <div class="team-math">
           <div><strong>${awayTeam}</strong><span>Offense ${formatNumber(game.away_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.away_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.home_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.home_stats.opponent_plays_per_game)} plays</span><span>Elo rating ${formatNumber(game.away_elo)} vs ${formatNumber(game.home_elo)}</span></div>
           <div><strong>${homeTeam}</strong><span>Offense ${formatNumber(game.home_stats.offensive_points_per_play)} pts/play × ${formatNumber(game.home_stats.offensive_plays_per_game)} plays</span><span>Opponent rate ${formatNumber(game.away_stats.opponent_points_per_play)} pts/play × ${formatNumber(game.away_stats.opponent_plays_per_game)} plays</span><span>Elo rating ${formatNumber(game.home_elo)} vs ${formatNumber(game.away_elo)}</span></div>
@@ -182,13 +184,13 @@ function updateSummary(data) {
     && Math.abs(game.market_home_spread - game.predicted_home_spread) >= 3
   )).length;
   document.querySelector("#updated-label").textContent = formatUpdated(data.generated_at);
-  const parameters = data.model_parameters || {
-    intercept: 0,
-    points_per_play_weight: 0.5,
-    elo_weight: 0.5,
+  modelParameters = {
+    market_anchor_weight: 0.75,
+    ...(data.model_parameters || {}),
   };
+  const parameters = modelParameters;
   document.querySelector("#formula-description").textContent =
-    `Intercept ${signed(parameters.intercept)} + (points-per-play margin × ${formatNumber(parameters.points_per_play_weight)}) + (Elo margin × ${formatNumber(parameters.elo_weight)})`;
+    `With a market line: ${formatNumber(parameters.market_anchor_weight * 100)}% market + ${formatNumber((1 - parameters.market_anchor_weight) * 100)}% independent projection. Without a line: intercept ${signed(parameters.intercept)} + (points-per-play margin × ${formatNumber(parameters.points_per_play_weight)}) + (Elo margin × ${formatNumber(parameters.elo_weight)}).`;
   if (biggest.game) {
     document.querySelector("#biggest-edge").textContent = `${biggest.difference >= 0 ? "HOME" : "AWAY"} ${formatNumber(Math.abs(biggest.difference))} pts`;
     document.querySelector("#biggest-edge-teams").textContent = `${biggest.game.away_team} at ${biggest.game.home_team}`;

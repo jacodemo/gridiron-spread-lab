@@ -37,6 +37,12 @@ def _saved_model_parameters(season: int) -> dict[str, float]:
             parameters.get("points_per_play_weight", 0.5)
         ),
         "elo_weight": float(parameters.get("elo_weight", 0.5)),
+        "market_anchor_weight": float(
+            parameters.get(
+                "market_anchor_weight",
+                DEFAULT_MODEL_PARAMETERS["market_anchor_weight"],
+            )
+        ),
     }
 
 
