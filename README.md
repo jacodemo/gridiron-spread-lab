@@ -77,6 +77,7 @@ All inputs are live external data. A missing or changed source table raises an e
 
 ## Website features
 
+- Product-style responsive dashboard with matchup, model-method, and season-record navigation.
 - Search scheduled games and filter to those with a model-to-market difference of at least three points.
 - Sort by kickoff, home team, or absolute spread difference.
 - See qualifying recommended bets and expand each game to inspect the TeamRankings averages and Elo ratings behind its predicted spread.

@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#101d32">
+    <meta name="theme-color" content="#0c1725">
     <meta name="description" content="Weekly FBS predicted spreads compared with sportsbook lines.">
     <link rel="canonical" href="https://cfb-spread-predictions.dev/">
-    <meta property="og:title" content="Gridiron Spread Lab — Weekly Forecast">
-    <meta property="og:description" content="A straightforward comparison of predicted spreads and sportsbook lines.">
+    <meta property="og:title" content="Gridiron Spread Lab — College Football Lines & Picks">
+    <meta property="og:description" content="Compare college football model spreads with sportsbook lines and track the season record.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cfb-spread-predictions.dev/">
-    <title>Gridiron Spread Lab — Weekly Forecast</title>
+    <title>Gridiron Spread Lab — College Football Lines & Picks</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -21,24 +21,28 @@
     <header class="topbar">
       <a class="brand" href="./" aria-label="Gridiron Spread Lab home">
         <span class="brand-mark" aria-hidden="true">G</span>
-        <span>GRIDIRON <span class="brand-light">SPREAD LAB</span></span>
+        <span class="brand-name">GRIDIRON <span class="brand-light">SPREAD LAB</span></span>
       </a>
+      <nav class="primary-nav" aria-label="Main navigation">
+        <a href="#board">Matchups</a>
+        <a href="#method">How it works</a>
+        <a href="#record">Season record</a>
+      </nav>
       <span class="season-tag"><span class="live-dot"></span><span id="season-label">COLLEGE FOOTBALL</span></span>
     </header>
 
     <main>
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">THE WEEKLY BOARD <span class="eyebrow-rule"></span></p>
-          <h1>Find your<br><span>game-day edge.</span></h1>
-          <p class="hero-description">Compare Elo-enhanced predicted spreads with current sportsbook lines and see qualifying model-backed picks.</p>
+          <p class="eyebrow"><span class="hero-kicker-dot"></span> COLLEGE FOOTBALL, MADE CLEAR</p>
+          <h1>See the line.<br><span>Know the edge.</span></h1>
+          <p class="hero-description">A sharper view of this week’s matchups. Compare our projections with the market and follow every pick through the season.</p>
         </div>
         <div class="week-card">
-          <span class="week-card-label">CURRENT SLATE</span>
+          <span class="week-card-label"><span class="week-live-dot"></span> THIS WEEK’S SLATE</span>
           <strong id="week-label">Loading week…</strong>
-          <span class="week-card-foot"><span class="week-calendar" aria-hidden="true">▦</span> FBS · REGULAR SEASON</span>
+          <span class="week-card-foot"><span class="week-calendar" aria-hidden="true">▦</span> FBS MATCHUPS <span aria-hidden="true">·</span> SEASON 2026</span>
         </div>
-        <div class="hero-stamp" aria-hidden="true"><span>CFB</span><strong>26</strong><i>WEEKLY<br>MODEL</i></div>
       </section>
 
       <section class="stats-strip" aria-label="Slate and season summary">
@@ -69,7 +73,7 @@
         </article>
       </section>
 
-      <section class="board-section" aria-labelledby="board-title">
+      <section id="board" class="board-section" aria-labelledby="board-title">
         <div class="section-heading">
           <div>
             <p class="eyebrow section-kicker">PREDICTED SPREADS & MARKET LINES</p>
@@ -109,7 +113,7 @@
         <div id="skipped-notice" class="notice" hidden></div>
       </section>
 
-      <section class="method-section" aria-labelledby="method-title">
+      <section id="method" class="method-section" aria-labelledby="method-title">
         <div class="method-heading">
           <p class="eyebrow section-kicker">OPEN BOOK MODEL</p>
           <h2 id="method-title">No black box.<br><span>Just the math.</span></h2>
@@ -150,7 +154,7 @@
         </div>
       </section>
 
-      <section class="record-section" aria-labelledby="record-title">
+      <section id="record" class="record-section" aria-labelledby="record-title">
         <div class="section-heading record-heading">
           <div>
             <p class="eyebrow section-kicker">SEASON TRACKER</p>
