@@ -7,17 +7,16 @@ from .data import EloGame, team_key
 from .model import DEFAULT_MODEL_PARAMETERS, calibrate_model_parameters
 
 BET_THRESHOLD_POINTS = 3.0
+MIN_WEEKLY_PICKS = 10
+MAX_WEEKLY_PICKS = 15
 
 
-def recommended_bet(game: dict[str, Any]) -> dict[str, Any] | None:
+def _bet_details(game: dict[str, Any]) -> dict[str, Any] | None:
     market_spread = game.get("market_home_spread")
     predicted_spread = game.get("predicted_home_spread")
     if market_spread is None or predicted_spread is None:
         return None
     difference = float(market_spread) - float(predicted_spread)
-    if abs(difference) < BET_THRESHOLD_POINTS:
-        return None
-
     home_side = difference > 0
     team = game["home_team"] if home_side else game["away_team"]
     spread = float(market_spread) if home_side else -float(market_spread)
@@ -28,6 +27,48 @@ def recommended_bet(game: dict[str, Any]) -> dict[str, Any] | None:
         "difference": round(difference, 1),
         "sportsbook": game.get("sportsbook"),
     }
+
+
+def recommended_bet(game: dict[str, Any]) -> dict[str, Any] | None:
+    bet = _bet_details(game)
+    if bet is None or abs(float(bet["difference"])) < BET_THRESHOLD_POINTS:
+        return None
+    return bet
+
+
+def select_weekly_recommendations(
+    games: list[dict[str, Any]],
+    now: datetime,
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    candidates: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for game in games:
+        kickoff = datetime.fromisoformat(str(game["start_time"]).replace("Z", "+00:00"))
+        if kickoff <= now:
+            continue
+        bet = _bet_details(game)
+        if bet is not None:
+            candidates.append((game, bet))
+
+    candidates.sort(
+        key=lambda candidate: (
+            -abs(float(candidate[1]["difference"])),
+            str(candidate[0]["start_time"]),
+            str(candidate[0].get("event_id", "")),
+        )
+    )
+    selected = candidates[:MIN_WEEKLY_PICKS]
+    if len(selected) >= MIN_WEEKLY_PICKS:
+        selected_keys = {_record_key(game) for game, _ in selected}
+        for game, bet in candidates[MIN_WEEKLY_PICKS:]:
+            if len(selected) >= MAX_WEEKLY_PICKS:
+                break
+            if (
+                abs(float(bet["difference"])) >= BET_THRESHOLD_POINTS
+                and _record_key(game) not in selected_keys
+            ):
+                selected.append((game, bet))
+                selected_keys.add(_record_key(game))
+    return selected
 
 
 def _record_key(game: dict[str, Any]) -> str:
@@ -105,6 +146,22 @@ def update_season_state(
         item["status"] = "completed"
 
     if mode == "refresh":
+        selected_picks = {
+            _record_key(game): bet
+            for game, bet in select_weekly_recommendations(games, now)
+        }
+        refresh_slate_keys = {
+            _record_key(game)
+            for game in games
+            if datetime.fromisoformat(
+                str(game["start_time"]).replace("Z", "+00:00")
+            ) > now
+        }
+        for key in refresh_slate_keys - selected_picks.keys():
+            previous = recommendations.get(key)
+            if previous is not None and previous.get("status") == "pending":
+                del recommendations[key]
+
         for game in games:
             kickoff = datetime.fromisoformat(str(game["start_time"]).replace("Z", "+00:00"))
             if kickoff <= now:
@@ -141,7 +198,7 @@ def update_season_state(
                         "final_home_score": None,
                         "final_away_score": None,
                     }
-            bet = recommended_bet(game)
+            bet = selected_picks.get(_record_key(game))
             if bet is None:
                 continue
             key = _record_key(game)

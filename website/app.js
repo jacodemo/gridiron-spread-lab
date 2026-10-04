@@ -130,7 +130,7 @@ function visibleGames() {
       ? game.market_home_spread - game.predicted_home_spread
       : null;
     const matchesFilter = activeFilter === "all"
-      || (activeFilter === "edge" && difference !== null && Math.abs(difference) >= 3);
+      || (activeFilter === "picks" && Boolean(game.recommendation));
     return matchesSearch && matchesFilter;
   });
 
@@ -178,11 +178,9 @@ function updateSummary(data) {
   document.querySelector("#game-count").textContent = String(games.length).padStart(2, "0");
   document.querySelector("#line-count").textContent = String(lineCount);
   document.querySelector("#all-count").textContent = games.length;
-  document.querySelector("#edge-count").textContent = games.filter((game) => (
-    Number.isFinite(game.market_home_spread)
-    && Number.isFinite(game.predicted_home_spread)
-    && Math.abs(game.market_home_spread - game.predicted_home_spread) >= 3
-  )).length;
+  document.querySelector("#edge-count").textContent = games.filter(
+    (game) => Boolean(game.recommendation),
+  ).length;
   document.querySelector("#updated-label").textContent = formatUpdated(data.generated_at);
   modelParameters = {
     market_anchor_weight: 0.70,

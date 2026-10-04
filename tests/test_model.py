@@ -13,6 +13,7 @@ from gridiron_spread.model import (
 )
 from gridiron_spread.season_record import (
     recommended_bet,
+    select_weekly_recommendations,
     season_record_summary,
     update_season_state,
 )
@@ -831,6 +832,84 @@ def test_recommended_bet_picks_model_favored_side_at_three_points():
     assert recommended_bet(game) is None
 
 
+def test_weekly_recommendations_select_at_least_ten_and_at_most_fifteen():
+    now = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    games = [
+        {
+            "event_id": str(index),
+            "home_team": f"Home {index}",
+            "away_team": f"Away {index}",
+            "start_time": datetime(2026, 10, 3, tzinfo=timezone.utc).isoformat(),
+            "market_home_spread": 0.0,
+            "predicted_home_spread": -(0.5 + index * 0.2),
+            "sportsbook": "FanDuel",
+        }
+        for index in range(20)
+    ]
+
+    picks = select_weekly_recommendations(games, now)
+
+    assert len(picks) == 10
+    assert [game["event_id"] for game, _ in picks] == [
+        str(index) for index in range(19, 9, -1)
+    ]
+    assert any(abs(bet["difference"]) < 3 for _, bet in picks)
+
+    larger_slate = games + [
+        {
+            **game,
+            "event_id": f"extra-{game['event_id']}",
+            "predicted_home_spread": game["predicted_home_spread"] - 3.0,
+        }
+        for game in games
+    ]
+    capped_picks = select_weekly_recommendations(larger_slate, now)
+
+    assert len(capped_picks) == 15
+    assert all(abs(bet["difference"]) >= 3 for _, bet in capped_picks[10:])
+
+
+def test_refresh_removes_pending_picks_dropped_from_ranked_slate():
+    now = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    kickoff = datetime(2026, 10, 3, tzinfo=timezone.utc).isoformat()
+    games = [
+        {
+            "event_id": str(index),
+            "home_team": f"Home {index}",
+            "away_team": f"Away {index}",
+            "start_time": kickoff,
+            "predicted_home_spread": -(0.5 + float(index) * 0.1),
+            "points_per_play_home_spread": -float(index + 1),
+            "elo_home_spread": 0.0,
+            "market_home_spread": 0.0,
+            "sportsbook": "FanDuel",
+        }
+        for index in range(12)
+    ]
+    initial = update_season_state(None, 2026, {}, games, [], now, "refresh")
+    assert len(initial["recommendations"]) == 10
+
+    revised_games = [dict(game) for game in games]
+    for game in revised_games:
+        game["predicted_home_spread"] = -(
+            0.5 + float(11 - int(game["event_id"])) * 0.1
+        )
+    refreshed = update_season_state(
+        initial,
+        2026,
+        {},
+        revised_games,
+        [],
+        datetime(2026, 10, 2, tzinfo=timezone.utc),
+        "refresh",
+    )
+
+    assert len(refreshed["recommendations"]) == 10
+    assert {pick["event_id"] for pick in refreshed["recommendations"]} == {
+        str(index) for index in range(10)
+    }
+
+
 @pytest.mark.parametrize(
     ("home_score", "away_score", "expected_status"),
     [(24, 20, "win"), (20, 24, "loss"), (23, 20, "push")],
@@ -944,7 +1023,8 @@ def test_season_state_archives_and_grades_all_model_forecasts():
     )
     assert saved["model_history"][0]["status"] == "pending"
     assert saved["model_history"][0]["market_home_margin"] == 3.5
-    assert saved["recommendations"] == []
+    assert len(saved["recommendations"]) == 1
+    assert saved["recommendations"][0]["difference"] == pytest.approx(-0.5)
 
     graded = update_season_state(
         saved,

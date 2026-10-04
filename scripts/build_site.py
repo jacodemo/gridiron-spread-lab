@@ -18,7 +18,7 @@ from gridiron_spread.model import (
 )
 from gridiron_spread.season_record import (
     empty_season_state,
-    recommended_bet,
+    select_weekly_recommendations,
     season_record_summary,
 )
 from gridiron_spread.sources import (
@@ -184,11 +184,12 @@ def build_payload(
                 "opponent_points_per_play": away_stats.opponent_points_per_play,
                 "opponent_plays_per_game": away_stats.opponent_plays_per_game,
             },
+            "recommendation": None,
         }
-        game["recommendation"] = (
-            recommended_bet(game) if matchup.start_time > generated_at else None
-        )
         games.append(game)
+
+    for game, bet in select_weekly_recommendations(games, generated_at):
+        game["recommendation"] = bet
 
     week_start = reference_date - timedelta(days=reference_date.weekday())
     week_end = week_start + timedelta(days=6)
