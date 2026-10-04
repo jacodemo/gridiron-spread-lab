@@ -227,6 +227,14 @@ function renderModelCalibration(calibration, parameters) {
 }
 
 function renderSeasonRecord(record) {
+  const topRecord = document.querySelector("#season-record-top");
+  topRecord.textContent = `${record.wins}–${record.losses}`;
+  topRecord.setAttribute(
+    "aria-label",
+    `${record.wins} wins and ${record.losses} losses`,
+  );
+  document.querySelector("#season-record-top-note").textContent =
+    `${record.pushes} pushes · ${record.pending} pending`;
   document.querySelector("#record-summary").textContent =
     `W–L–P: ${record.wins}–${record.losses}–${record.pushes} · ${record.pending} pending`;
   const rows = record.recommendations.map((pick) => {

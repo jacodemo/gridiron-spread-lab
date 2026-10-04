@@ -82,4 +82,5 @@ All inputs are live external data. A missing or changed source table raises an e
 - See qualifying recommended bets and expand each game to inspect the TeamRankings averages and Elo ratings behind its predicted spread.
 - Compare FanDuel, DraftKings, the ESPN feed line, SportsLine consensus, and fallback VegasInsider consensus independently when available.
 - Follow the season's recommended-bet W–L–P record and final results.
+- See the active season W–L record in the top summary bar.
 - View mobile-friendly matchup cards and a plain-language explanation of the model.

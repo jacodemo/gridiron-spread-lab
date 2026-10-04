@@ -46,13 +46,14 @@ h1 span { color: #638345; }
 .hero-stamp strong { font: 800 93px/.9 "Manrope", sans-serif; letter-spacing: -.1em; }
 .hero-stamp i { margin-top: 8px; font: normal 7px/1.5 "DM Mono", monospace; letter-spacing: .15em; text-align: center; }
 
-.stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--navy); border-radius: 11px; overflow: hidden; color: var(--white); }
+.stats-strip { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--navy); border-radius: 11px; overflow: hidden; color: var(--white); }
 .summary-stat { min-height: 115px; padding: 21px 25px; border-right: 1px solid #ffffff18; }
 .summary-stat:last-child { border-right: 0; }
 .summary-label { display: block; color: #a3adb8; font: 500 9px "DM Mono", monospace; letter-spacing: .12em; }
 .summary-stat strong { display: block; margin: 9px 0 5px; font: 700 24px "Manrope", sans-serif; letter-spacing: -.04em; }
 .summary-note { display: block; color: #a3adb8; font-size: 10px; }
 .summary-stat-edge strong { color: var(--lime); font-size: 20px; }
+.summary-stat-record strong { color: var(--lime); }
 .summary-stat-updated strong { font-size: 17px; }
 
 .board-section { padding: 73px 0 0; }
