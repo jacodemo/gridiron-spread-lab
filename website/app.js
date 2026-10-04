@@ -182,6 +182,13 @@ function updateSummary(data) {
     && Math.abs(game.market_home_spread - game.predicted_home_spread) >= 3
   )).length;
   document.querySelector("#updated-label").textContent = formatUpdated(data.generated_at);
+  const parameters = data.model_parameters || {
+    intercept: 0,
+    points_per_play_weight: 0.5,
+    elo_weight: 0.5,
+  };
+  document.querySelector("#formula-description").textContent =
+    `Intercept ${signed(parameters.intercept)} + (points-per-play margin × ${formatNumber(parameters.points_per_play_weight)}) + (Elo margin × ${formatNumber(parameters.elo_weight)})`;
   if (biggest.game) {
     document.querySelector("#biggest-edge").textContent = `${biggest.difference >= 0 ? "HOME" : "AWAY"} ${formatNumber(Math.abs(biggest.difference))} pts`;
     document.querySelector("#biggest-edge-teams").textContent = `${biggest.game.away_team} at ${biggest.game.home_team}`;
@@ -193,6 +200,30 @@ function updateSummary(data) {
     notice.hidden = false;
   }
   renderSeasonRecord(data.season_record);
+  renderModelCalibration(data.season_record.model_calibration, parameters);
+}
+
+function renderModelCalibration(calibration, parameters) {
+  const summary = document.querySelector("#calibration-summary");
+  if (!calibration) {
+    summary.textContent =
+      `Calibration warming up: no saved forecast history yet. Current weights are ${formatNumber(parameters.points_per_play_weight)} points-per-play and ${formatNumber(parameters.elo_weight)} Elo.`;
+    return;
+  }
+  if (calibration.status === "warming_up") {
+    summary.textContent =
+      `Calibration warming up: ${calibration.observations} / ${calibration.minimum_observations} completed forecast results. Current weights are ${formatNumber(parameters.points_per_play_weight)} points-per-play and ${formatNumber(parameters.elo_weight)} Elo.`;
+    return;
+  }
+  const validation =
+    `Walk-forward validation: ${calibration.calibrated_validation_mae} pts calibrated vs ${calibration.baseline_validation_mae} pts current over ${calibration.validation_games} games.`;
+  const decision = calibration.status === "updated"
+    ? `Weekly review updated the model using ${calibration.observations} completed forecasts.`
+    : `Weekly review retained current weights; the candidate missed the 0.25-point improvement threshold.`;
+  const weekly = calibration.weekly_review
+    ? ` Last slate (${calibration.weekly_review.week_start}) MAE: ${calibration.weekly_review.mae} pts across ${calibration.weekly_review.completed_games} games.`
+    : "";
+  summary.textContent = `${decision} ${validation}${weekly}`;
 }
 
 function renderSeasonRecord(record) {

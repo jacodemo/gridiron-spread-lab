@@ -11,7 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gridiron_spread.data import Matchup, TeamStats, team_key
-from gridiron_spread.model import ELO_POINTS_PER_RATING, project_matchup
+from gridiron_spread.model import (
+    DEFAULT_MODEL_PARAMETERS,
+    ELO_POINTS_PER_RATING,
+    project_matchup,
+)
 from gridiron_spread.season_record import (
     empty_season_state,
     recommended_bet,
@@ -38,6 +42,18 @@ def build_payload(
     season_state: dict[str, object] | None = None,
 ) -> dict[str, object]:
     stats_by_key = {team_key(name): stats for name, stats in team_stats.items()}
+    season = current_season_year(reference_date)
+    state = season_state or empty_season_state(season)
+    state_parameters = state.get("model_parameters", DEFAULT_MODEL_PARAMETERS)
+    if not isinstance(state_parameters, dict):
+        state_parameters = DEFAULT_MODEL_PARAMETERS
+    model_parameters = {
+        "intercept": float(state_parameters.get("intercept", 0.0)),
+        "points_per_play_weight": float(
+            state_parameters.get("points_per_play_weight", 0.5)
+        ),
+        "elo_weight": float(state_parameters.get("elo_weight", 0.5)),
+    }
     games: list[dict[str, object]] = []
     skipped: list[dict[str, object]] = []
 
@@ -108,7 +124,12 @@ def build_payload(
         ):
             market_lines[matchup.sportsbook] = -matchup.market_home_margin
 
-        projection = project_matchup(matchup, team_stats, elo_ratings)
+        projection = project_matchup(
+            matchup,
+            team_stats,
+            elo_ratings,
+            model_parameters,
+        )
         game = {
             "event_id": matchup.event_id,
             "home_team": matchup.home_team,
@@ -156,8 +177,6 @@ def build_payload(
 
     week_start = reference_date - timedelta(days=reference_date.weekday())
     week_end = week_start + timedelta(days=6)
-    season = current_season_year(reference_date)
-    state = season_state or empty_season_state(season)
     return {
         "season": season,
         "week_start": week_start.isoformat(),
@@ -169,7 +188,9 @@ def build_payload(
             **season_record_summary(state),
             "recommendations": state.get("recommendations", []),
             "updated_at": state.get("updated_at"),
+            "model_calibration": state.get("model_calibration"),
         },
+        "model_parameters": model_parameters,
         "sources": [
             {
                 "name": "TeamRankings",

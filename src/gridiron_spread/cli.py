@@ -1,8 +1,10 @@
 import argparse
+import json
 from datetime import date
+from pathlib import Path
 
 from .data import Matchup, team_key
-from .model import project_matchup
+from .model import DEFAULT_MODEL_PARAMETERS, project_matchup
 from .sources import (
     current_season_year,
     fetch_season_elo_ratings,
@@ -10,12 +12,32 @@ from .sources import (
     fetch_weekly_matchups,
 )
 
+SEASON_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "season_record.json"
+
 
 def _market_line(market_home_margin: float | None, sportsbook: str | None) -> str:
     if market_home_margin is None:
         return "unavailable"
     line = -market_home_margin
     return f"{sportsbook} home {line:+.1f}"
+
+
+def _saved_model_parameters(season: int) -> dict[str, float]:
+    if not SEASON_STATE_PATH.exists():
+        return DEFAULT_MODEL_PARAMETERS.copy()
+    state = json.loads(SEASON_STATE_PATH.read_text(encoding="utf-8"))
+    if state.get("season") != season:
+        return DEFAULT_MODEL_PARAMETERS.copy()
+    parameters = state.get("model_parameters", DEFAULT_MODEL_PARAMETERS)
+    if not isinstance(parameters, dict):
+        raise ValueError(f"Invalid model parameters in {SEASON_STATE_PATH}")
+    return {
+        "intercept": float(parameters.get("intercept", 0.0)),
+        "points_per_play_weight": float(
+            parameters.get("points_per_play_weight", 0.5)
+        ),
+        "elo_weight": float(parameters.get("elo_weight", 0.5)),
+    }
 
 
 def main() -> None:
@@ -40,6 +62,7 @@ def main() -> None:
         current_season_year(args.date),
         args.date,
     )
+    model_parameters = _saved_model_parameters(current_season_year(args.date))
     available_teams = {team_key(team) for team in team_stats}
     forecastable: list[Matchup] = []
     skipped: list[tuple[Matchup, list[str]]] = []
@@ -66,7 +89,12 @@ def main() -> None:
     print(f"Weekly FBS projections for the week containing {args.date.isoformat()}")
     print(f"{'Matchup':48} {'Model score':19} {'Model margin':14} {'Market line':24} {'Edge':>8}")
     for matchup in forecastable:
-        projection = project_matchup(matchup, team_stats, elo_ratings)
+        projection = project_matchup(
+            matchup,
+            team_stats,
+            elo_ratings,
+            model_parameters,
+        )
         score = f"{projection.home_points:.1f}-{projection.away_points:.1f}"
         market_line = _market_line(matchup.market_home_margin, matchup.sportsbook)
         edge = (

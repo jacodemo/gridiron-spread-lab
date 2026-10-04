@@ -11,7 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from gridiron_spread.season_record import season_start_date, update_season_state
+from gridiron_spread.season_record import (
+    empty_season_state,
+    season_start_date,
+    update_season_state,
+)
 from gridiron_spread.sources import (
     calculate_elo_ratings,
     completed_elo_games,
@@ -54,6 +58,8 @@ def update_season(mode: str, now: datetime | None = None) -> bool:
         if SEASON_STATE_PATH.exists()
         else None
     )
+    if existing is not None and existing.get("season") != season:
+        existing = None
     games: list[dict[str, object]] = []
     if selected_mode == "refresh":
         from gridiron_spread.model import ELO_POINTS_PER_RATING
@@ -66,6 +72,7 @@ def update_season(mode: str, now: datetime | None = None) -> bool:
             matchups,
             team_stats,
             elo_ratings,
+            existing or empty_season_state(season),
         )
         games = payload["games"]
         print(

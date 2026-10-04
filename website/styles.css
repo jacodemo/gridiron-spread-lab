@@ -140,6 +140,7 @@ kbd { padding: 2px 5px; border: 1px solid #e4e5e2; border-radius: 3px; color: #8
 .method-footer > span:first-child { color: #78905a; font: 500 8px "DM Mono", monospace; letter-spacing: .08em; }
 .method-footer > strong { color: #516247; font: 600 10px "DM Sans", sans-serif; }
 .edge-key { display: flex; align-items: center; gap: 5px; color: #858e89; font-size: 9px; }
+.calibration-summary { width: 100%; line-height: 1.6; }
 .positive-dot, .negative-dot { width: 6px; height: 6px; margin-left: 4px; border-radius: 50%; background: #45825b; }
 .negative-dot { background: #bf685a; }
 

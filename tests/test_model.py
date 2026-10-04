@@ -4,7 +4,13 @@ import json
 import pytest
 
 from gridiron_spread.data import EloGame, Matchup, TeamStats, team_key
-from gridiron_spread.model import predict_team_points, project_matchup
+from gridiron_spread import cli
+from gridiron_spread.model import (
+    DEFAULT_MODEL_PARAMETERS,
+    calibrate_model_parameters,
+    predict_team_points,
+    project_matchup,
+)
 from gridiron_spread.season_record import (
     recommended_bet,
     season_record_summary,
@@ -55,6 +61,99 @@ def test_project_matchup_blends_points_per_play_and_elo_margins():
     assert projection.away_points == pytest.approx((27.2 + 19.5) / 2)
     assert projection.elo_home_margin == pytest.approx(4)
     assert projection.projected_home_margin == pytest.approx(5.375)
+
+
+def test_project_matchup_uses_calibrated_model_parameters():
+    home = TeamStats("Home", 0.5, 70, 65, 0.3)
+    away = TeamStats("Away", 0.4, 68, 72, 0.35)
+    matchup = Matchup(
+        home_team="Home",
+        away_team="Away",
+        start_time=datetime(2026, 10, 3, tzinfo=timezone.utc),
+        market_home_margin=None,
+        sportsbook=None,
+    )
+
+    projection = project_matchup(
+        matchup,
+        {"Home": home, "Away": away},
+        {"Home": 1600, "Away": 1500},
+        {
+            "intercept": 2.0,
+            "points_per_play_weight": 0.8,
+            "elo_weight": 0.2,
+        },
+    )
+
+    assert projection.projected_home_margin == pytest.approx(8.2)
+
+
+def test_model_calibration_requires_walk_forward_improvement():
+    records = []
+    for index in range(100):
+        points_margin = ((index * 17) % 43) - 21
+        elo_margin = ((index * 11) % 19) - 9
+        records.append(
+            {
+                "start_time": datetime(
+                    2026, 9, 1 + index // 10, tzinfo=timezone.utc
+                ).isoformat(),
+                "points_per_play_home_margin": points_margin,
+                "elo_home_margin": elo_margin,
+                "actual_home_margin": 3 + 1.1 * points_margin + 0.05 * elo_margin,
+            }
+        )
+
+    parameters, report = calibrate_model_parameters(records)
+
+    assert report["status"] == "updated"
+    assert report["observations"] == 100
+    assert report["calibrated_validation_mae"] < report["baseline_validation_mae"]
+    assert parameters["points_per_play_weight"] > DEFAULT_MODEL_PARAMETERS[
+        "points_per_play_weight"
+    ]
+
+
+def test_model_calibration_warms_up_without_changing_parameters():
+    records = [
+        {
+            "start_time": datetime(2026, 9, 1, tzinfo=timezone.utc).isoformat(),
+            "points_per_play_home_margin": 4.0,
+            "elo_home_margin": 2.0,
+            "actual_home_margin": 8.0,
+        }
+        for _ in range(39)
+    ]
+
+    parameters, report = calibrate_model_parameters(records)
+
+    assert report["status"] == "warming_up"
+    assert parameters == DEFAULT_MODEL_PARAMETERS
+
+
+def test_cli_uses_saved_parameters_for_the_current_season(tmp_path, monkeypatch):
+    state_path = tmp_path / "season_record.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "season": 2026,
+                "model_parameters": {
+                    "intercept": 2,
+                    "points_per_play_weight": 0.8,
+                    "elo_weight": 0.2,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cli, "SEASON_STATE_PATH", state_path)
+
+    assert cli._saved_model_parameters(2026) == {
+        "intercept": 2.0,
+        "points_per_play_weight": 0.8,
+        "elo_weight": 0.2,
+    }
+    assert cli._saved_model_parameters(2025) == DEFAULT_MODEL_PARAMETERS
 
 
 def test_project_matchup_matches_abbreviated_team_names():
@@ -766,3 +865,104 @@ def test_refresh_replaces_pending_pick_with_latest_qualifying_line():
     assert latest["recommendations"][0]["spread"] == -3.5
     assert latest["recommendations"][0]["sportsbook"] == "DraftKings"
     assert latest["recommendations"][0]["recommended_at"] == "2026-10-02T00:00:00+00:00"
+
+
+def test_season_state_archives_and_grades_all_model_forecasts():
+    kickoff = datetime(2026, 9, 5, 18, tzinfo=timezone.utc)
+    game = {
+        "event_id": "forecast-1",
+        "home_team": "Home",
+        "away_team": "Away",
+        "start_time": kickoff.isoformat(),
+        "predicted_home_spread": -3,
+        "points_per_play_home_spread": -4,
+        "elo_home_spread": -2,
+        "market_home_spread": None,
+        "sportsbook": None,
+    }
+    saved = update_season_state(
+        None,
+        2026,
+        {},
+        [game],
+        [],
+        datetime(2026, 9, 4, tzinfo=timezone.utc),
+        "refresh",
+    )
+    assert saved["model_history"][0]["status"] == "pending"
+    assert saved["recommendations"] == []
+
+    graded = update_season_state(
+        saved,
+        2026,
+        {},
+        [],
+        [
+            EloGame(
+                event_id="forecast-1",
+                home_team="Home",
+                away_team="Away",
+                home_score=28,
+                away_score=21,
+                start_time=kickoff,
+            )
+        ],
+        datetime(2026, 9, 6, 23, tzinfo=timezone.utc),
+        "grade",
+    )
+
+    forecast = graded["model_history"][0]
+    assert forecast["status"] == "completed"
+    assert forecast["actual_home_margin"] == 7
+    assert graded["model_calibration"]["status"] == "warming_up"
+    assert graded["model_calibration"]["weekly_review"] == {
+        "week_start": "2026-08-31",
+        "completed_games": 1,
+        "mae": 4.0,
+    }
+
+
+def test_weekly_grade_updates_parameters_only_after_validation_improves():
+    history = []
+    for index in range(100):
+        points_margin = ((index * 17) % 43) - 21
+        elo_margin = ((index * 11) % 19) - 9
+        history.append(
+            {
+                "event_id": str(index),
+                "home_team": "Home",
+                "away_team": "Away",
+                "start_time": datetime(
+                    2026, 9, 1 + index // 10, tzinfo=timezone.utc
+                ).isoformat(),
+                "predicted_home_margin": (
+                    0.5 * points_margin + 0.5 * elo_margin
+                ),
+                "points_per_play_home_margin": points_margin,
+                "elo_home_margin": elo_margin,
+                "actual_home_margin": (
+                    3 + 1.1 * points_margin + 0.05 * elo_margin
+                ),
+                "status": "completed",
+            }
+        )
+    existing = {
+        "season": 2026,
+        "recommendations": [],
+        "model_history": history,
+        "model_parameters": DEFAULT_MODEL_PARAMETERS.copy(),
+    }
+
+    reviewed = update_season_state(
+        existing,
+        2026,
+        {},
+        [],
+        [],
+        datetime(2026, 10, 4, 23, tzinfo=timezone.utc),
+        "grade",
+    )
+
+    assert reviewed["model_calibration"]["status"] == "updated"
+    assert reviewed["model_parameters"]["points_per_play_weight"] > 0.5
+    assert reviewed["model_calibration"]["weekly_review"]["completed_games"] == 40

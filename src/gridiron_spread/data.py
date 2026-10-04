@@ -121,8 +121,15 @@ class Projection:
     home_points: float
     away_points: float
     elo_home_margin: float = 0.0
+    model_intercept: float = 0.0
+    points_per_play_weight: float = 0.5
+    elo_weight: float = 0.5
 
     @property
     def projected_home_margin(self) -> float:
         points_per_play_margin = self.home_points - self.away_points
-        return (points_per_play_margin + self.elo_home_margin) / 2
+        return (
+            self.model_intercept
+            + self.points_per_play_weight * points_per_play_margin
+            + self.elo_weight * self.elo_home_margin
+        )

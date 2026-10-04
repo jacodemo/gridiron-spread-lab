@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from .data import EloGame, team_key
+from .model import DEFAULT_MODEL_PARAMETERS, calibrate_model_parameters
 
 BET_THRESHOLD_POINTS = 3.0
 
@@ -48,6 +49,9 @@ def _new_state(season: int) -> dict[str, Any]:
         "updated_at": None,
         "elo_ratings": {},
         "recommendations": [],
+        "model_history": [],
+        "model_parameters": DEFAULT_MODEL_PARAMETERS.copy(),
+        "model_calibration": None,
     }
 
 
@@ -75,12 +79,61 @@ def update_season_state(
         for item in state.get("recommendations", [])
         if isinstance(item, dict)
     }
+    parameters = state.get("model_parameters")
+    if not isinstance(parameters, dict):
+        parameters = DEFAULT_MODEL_PARAMETERS.copy()
+    model_history: dict[str, dict[str, Any]] = {
+        _record_key(item): item
+        for item in state.get("model_history", [])
+        if isinstance(item, dict)
+    }
+    scores_by_id = {game.event_id: game for game in completed_games}
+    for item in model_history.values():
+        event_id = item.get("event_id")
+        final = scores_by_id.get(str(event_id)) if event_id is not None else None
+        if item.get("status") != "pending" or final is None:
+            continue
+        if final.start_time < datetime.fromisoformat(
+            str(item["start_time"]).replace("Z", "+00:00")
+        ):
+            raise ValueError(f"ESPN final event time precedes kickoff for {event_id}")
+        item["actual_home_margin"] = final.home_score - final.away_score
+        item["final_home_score"] = final.home_score
+        item["final_away_score"] = final.away_score
+        item["status"] = "completed"
 
     if mode == "refresh":
         for game in games:
             kickoff = datetime.fromisoformat(str(game["start_time"]).replace("Z", "+00:00"))
             if kickoff <= now:
                 continue
+            predicted_spread = game.get("predicted_home_spread")
+            points_spread = game.get("points_per_play_home_spread")
+            elo_spread = game.get("elo_home_spread")
+            event_id = game.get("event_id")
+            if (
+                event_id is not None
+                and isinstance(predicted_spread, (int, float))
+                and isinstance(points_spread, (int, float))
+                and isinstance(elo_spread, (int, float))
+            ):
+                key = _record_key(game)
+                previous_forecast = model_history.get(key)
+                if previous_forecast is None or previous_forecast.get("status") == "pending":
+                    model_history[key] = {
+                        "event_id": str(event_id),
+                        "home_team": game["home_team"],
+                        "away_team": game["away_team"],
+                        "start_time": game["start_time"],
+                        "predicted_home_margin": -float(predicted_spread),
+                        "points_per_play_home_margin": -float(points_spread),
+                        "elo_home_margin": -float(elo_spread),
+                        "parameters": parameters.copy(),
+                        "status": "pending",
+                        "actual_home_margin": None,
+                        "final_home_score": None,
+                        "final_away_score": None,
+                    }
             bet = recommended_bet(game)
             if bet is None:
                 continue
@@ -107,7 +160,6 @@ def update_season_state(
     elif mode != "grade":
         raise ValueError(f"Unsupported season-record update mode: {mode}")
 
-    scores_by_id = {game.event_id: game for game in completed_games}
     for item in recommendations.values():
         event_id = item.get("event_id")
         final = scores_by_id.get(str(event_id)) if event_id is not None else None
@@ -129,6 +181,64 @@ def update_season_state(
         item["final_away_score"] = final.away_score
         item["graded_at"] = now.isoformat()
 
+    calibration: dict[str, Any] | None = state.get("model_calibration")
+    if mode == "grade":
+        completed_forecasts = [
+            item for item in model_history.values()
+            if item.get("status") == "completed"
+        ]
+        parameters, metrics = calibrate_model_parameters(
+            completed_forecasts,
+            parameters,
+        )
+        weekly_review = None
+        if completed_forecasts:
+            latest_game_date = max(
+                datetime.fromisoformat(
+                    str(item["start_time"]).replace("Z", "+00:00")
+                ).date()
+                for item in completed_forecasts
+            )
+            week_start = latest_game_date - timedelta(days=latest_game_date.weekday())
+            latest_week = [
+                item
+                for item in completed_forecasts
+                if (
+                    datetime.fromisoformat(
+                        str(item["start_time"]).replace("Z", "+00:00")
+                    ).date()
+                    - timedelta(
+                        days=datetime.fromisoformat(
+                            str(item["start_time"]).replace("Z", "+00:00")
+                        ).date().weekday()
+                    )
+                )
+                == week_start
+            ]
+            weekly_mae = sum(
+                abs(
+                    float(item["actual_home_margin"])
+                    - float(item["predicted_home_margin"])
+                )
+                for item in latest_week
+            ) / len(latest_week)
+            weekly_review = {
+                "week_start": week_start.isoformat(),
+                "completed_games": len(latest_week),
+                "mae": round(weekly_mae, 3),
+            }
+        calibration = {
+            **metrics,
+            "reviewed_at": now.isoformat(),
+            "parameters": parameters.copy(),
+            "weekly_review": weekly_review,
+        }
+    state["model_parameters"] = parameters
+    state["model_calibration"] = calibration
+    state["model_history"] = sorted(
+        model_history.values(),
+        key=lambda item: str(item["start_time"]),
+    )
     state["recommendations"] = sorted(
         recommendations.values(),
         key=lambda item: str(item["start_time"]),

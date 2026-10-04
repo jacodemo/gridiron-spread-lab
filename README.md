@@ -58,7 +58,9 @@ For each team:
 3. Estimate each team's scoring pace as the average of its offensive output and its opponent's opponent output.
 4. Calculate the points-per-play home margin from both scoring estimates.
 5. Calculate the Elo home margin as `(home Elo − away Elo) / 25`. Teams begin each season at 1500 Elo; completed FBS results update ratings using the standard 400-point expected-score curve and a K-factor of 20.
-6. Blend the points-per-play and Elo home margins equally. The displayed home spread is the negative of that blended home margin.
+6. Predict the home margin using the current points-per-play, Elo, and intercept weights. Initially this is an equal blend of the points-per-play and Elo margins with no intercept. The displayed home spread is the negative of the predicted home margin.
+
+After Sunday results are graded, the season updater archives completed scores for every saved pregame projection, not just recommended bets. Once at least 40 forecast outcomes have accumulated, it fits a regularized linear regression over the points-per-play margin, Elo margin, and intercept. The proposed weights are adopted only when chronological walk-forward validation improves mean absolute score-margin error by at least 0.25 points versus the current formula. Otherwise, the existing weights are retained. The dashboard reports the active weights, validation comparison, and latest slate's forecast error. Calibration starts collecting prospective forecasts from the next scheduled update; older results without saved pregame model inputs are not reconstructed or treated as training data.
 
 The model uses these TeamRankings season columns:
 
