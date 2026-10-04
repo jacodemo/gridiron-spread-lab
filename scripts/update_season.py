@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -89,6 +89,9 @@ def update_season(mode: str, now: datetime | None = None) -> bool:
         completed_games,
         now,
         selected_mode,
+        recommendation_week_start=(
+            local_date - timedelta(days=local_date.weekday())
+        ),
     )
     SEASON_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     SEASON_STATE_PATH.write_text(

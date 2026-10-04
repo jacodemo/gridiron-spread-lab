@@ -740,6 +740,51 @@ def test_website_payload_serializes_projection_and_skipped_games():
     ]
 
 
+def test_website_payload_uses_the_locked_recommendation_from_season_state():
+    kickoff = datetime(2026, 10, 3, 18, tzinfo=timezone.utc)
+    matchup = Matchup(
+        home_team="Home",
+        away_team="Away",
+        start_time=kickoff,
+        market_home_margin=3.5,
+        sportsbook="DraftKings",
+        event_id="locked-game",
+        market_lines={"DraftKings": -3.5},
+    )
+    stats = {
+        "Home": TeamStats("Home", 0.5, 70, 65, 0.3),
+        "Away": TeamStats("Away", 0.4, 68, 72, 0.35),
+    }
+    saved_pick = {
+        "event_id": "locked-game",
+        "home_team": "Home",
+        "away_team": "Away",
+        "start_time": kickoff.isoformat(),
+        "side": "home",
+        "team": "Home",
+        "spread": -4.0,
+        "difference": 5.25,
+        "sportsbook": "FanDuel",
+        "status": "pending",
+    }
+
+    payload = build_payload(
+        date(2026, 10, 3),
+        datetime(2026, 10, 2, tzinfo=timezone.utc),
+        [matchup],
+        stats,
+        season_state={"season": 2026, "recommendations": [saved_pick]},
+    )
+
+    assert payload["games"][0]["recommendation"] == {
+        "side": "home",
+        "team": "Home",
+        "spread": -4.0,
+        "difference": 5.25,
+        "sportsbook": "FanDuel",
+    }
+
+
 def test_calculate_elo_ratings_applies_expected_score_update():
     games = [
         EloGame(
@@ -869,7 +914,7 @@ def test_weekly_recommendations_select_at_least_ten_and_at_most_fifteen():
     assert all(abs(bet["difference"]) >= 3 for _, bet in capped_picks[10:])
 
 
-def test_refresh_removes_pending_picks_dropped_from_ranked_slate():
+def test_refresh_locks_recommendations_and_saved_lines_for_the_week():
     now = datetime(2026, 10, 1, tzinfo=timezone.utc)
     kickoff = datetime(2026, 10, 3, tzinfo=timezone.utc).isoformat()
     games = [
@@ -905,8 +950,12 @@ def test_refresh_removes_pending_picks_dropped_from_ranked_slate():
     )
 
     assert len(refreshed["recommendations"]) == 10
-    assert {pick["event_id"] for pick in refreshed["recommendations"]} == {
-        str(index) for index in range(10)
+    assert {
+        pick["event_id"]: (pick["spread"], pick["sportsbook"], pick["difference"])
+        for pick in refreshed["recommendations"]
+    } == {
+        pick["event_id"]: (pick["spread"], pick["sportsbook"], pick["difference"])
+        for pick in initial["recommendations"]
     }
 
 
@@ -961,7 +1010,7 @@ def test_season_record_grades_spread_picks_and_tracks_record(
     assert summary[{"win": "wins", "loss": "losses", "push": "pushes"}[expected_status]] == 1
 
 
-def test_refresh_replaces_pending_pick_with_latest_qualifying_line():
+def test_refresh_does_not_replace_a_locked_line_with_a_newer_line():
     kickoff = datetime(2026, 10, 3, 18, tzinfo=timezone.utc)
     game = {
         "event_id": "42",
@@ -994,9 +1043,94 @@ def test_refresh_replaces_pending_pick_with_latest_qualifying_line():
     )
 
     assert len(latest["recommendations"]) == 1
-    assert latest["recommendations"][0]["spread"] == -3.5
-    assert latest["recommendations"][0]["sportsbook"] == "DraftKings"
-    assert latest["recommendations"][0]["recommended_at"] == "2026-10-02T00:00:00+00:00"
+    assert latest["recommendations"][0]["spread"] == -4
+    assert latest["recommendations"][0]["sportsbook"] == "FanDuel"
+    assert latest["recommendations"][0]["recommended_at"] == "2026-10-01T00:00:00+00:00"
+
+
+def test_refresh_waits_for_prior_week_recommendations_to_be_graded():
+    previous_kickoff = datetime(2026, 10, 5, 3, 30, tzinfo=timezone.utc)
+    previous_game = {
+        "event_id": "previous",
+        "home_team": "Previous Home",
+        "away_team": "Previous Away",
+        "start_time": previous_kickoff.isoformat(),
+        "predicted_home_spread": -8,
+        "points_per_play_home_spread": -8,
+        "elo_home_spread": 0.0,
+        "market_home_spread": -4,
+        "sportsbook": "FanDuel",
+    }
+    prior_state = update_season_state(
+        None,
+        2026,
+        {},
+        [previous_game],
+        [],
+        datetime(2026, 10, 1, tzinfo=timezone.utc),
+        "refresh",
+        recommendation_week_start=date(2026, 9, 28),
+    )
+    current_games = [
+        {
+            "event_id": f"current-{index}",
+            "home_team": f"Home {index}",
+            "away_team": f"Away {index}",
+            "start_time": datetime(2026, 10, 10, tzinfo=timezone.utc).isoformat(),
+            "predicted_home_spread": -float(index + 1),
+            "points_per_play_home_spread": -float(index + 1),
+            "elo_home_spread": 0.0,
+            "market_home_spread": 0.0,
+            "sportsbook": "FanDuel",
+        }
+        for index in range(10)
+    ]
+    blocked = update_season_state(
+        prior_state,
+        2026,
+        {},
+        current_games,
+        [],
+        datetime(2026, 10, 7, tzinfo=timezone.utc),
+        "refresh",
+        recommendation_week_start=date(2026, 10, 5),
+    )
+    assert not any(
+        item["event_id"].startswith("current-")
+        for item in blocked["recommendations"]
+    )
+
+    completed = EloGame(
+        event_id="previous",
+        home_team="Previous Home",
+        away_team="Previous Away",
+        home_score=28,
+        away_score=21,
+        start_time=previous_kickoff,
+    )
+    graded = update_season_state(
+        blocked,
+        2026,
+        {},
+        [],
+        [completed],
+        datetime(2026, 10, 5, 23, tzinfo=timezone.utc),
+        "grade",
+    )
+    refreshed = update_season_state(
+        graded,
+        2026,
+        {},
+        current_games,
+        [],
+        datetime(2026, 10, 7, tzinfo=timezone.utc),
+        "refresh",
+        recommendation_week_start=date(2026, 10, 5),
+    )
+    assert sum(
+        item["start_time"].startswith("2026-10-10")
+        for item in refreshed["recommendations"]
+    ) == 10
 
 
 def test_season_state_archives_and_grades_all_model_forecasts():

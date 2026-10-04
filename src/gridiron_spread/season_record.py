@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from .data import EloGame, team_key
 from .model import DEFAULT_MODEL_PARAMETERS, calibrate_model_parameters
 
+CENTRAL = ZoneInfo("America/Chicago")
 BET_THRESHOLD_POINTS = 3.0
 MIN_WEEKLY_PICKS = 10
 MAX_WEEKLY_PICKS = 15
@@ -84,6 +86,20 @@ def _record_key(game: dict[str, Any]) -> str:
     )
 
 
+def _week_start(value: str | datetime) -> date:
+    kickoff = (
+        value
+        if isinstance(value, datetime)
+        else datetime.fromisoformat(value.replace("Z", "+00:00"))
+    )
+    kickoff_date = (
+        kickoff.astimezone(CENTRAL).date()
+        if kickoff.tzinfo is not None
+        else kickoff.date()
+    )
+    return kickoff_date - timedelta(days=kickoff_date.weekday())
+
+
 def _new_state(season: int) -> dict[str, Any]:
     return {
         "season": season,
@@ -104,6 +120,7 @@ def update_season_state(
     completed_games: list[EloGame],
     now: datetime,
     mode: str,
+    recommendation_week_start: date | None = None,
 ) -> dict[str, Any]:
     state = (
         existing
@@ -146,21 +163,42 @@ def update_season_state(
         item["status"] = "completed"
 
     if mode == "refresh":
-        selected_picks = {
-            _record_key(game): bet
-            for game, bet in select_weekly_recommendations(games, now)
-        }
-        refresh_slate_keys = {
-            _record_key(game)
-            for game in games
-            if datetime.fromisoformat(
-                str(game["start_time"]).replace("Z", "+00:00")
-            ) > now
-        }
-        for key in refresh_slate_keys - selected_picks.keys():
-            previous = recommendations.get(key)
-            if previous is not None and previous.get("status") == "pending":
-                del recommendations[key]
+        current_week = recommendation_week_start
+        if current_week is None and games:
+            current_week = _week_start(
+                min(str(game["start_time"]) for game in games)
+            )
+        current_week_recommendations = [
+            item
+            for item in recommendations.values()
+            if current_week is not None
+            and _week_start(str(item["start_time"])) == current_week
+        ]
+        prior_weeks = [
+            _week_start(str(item["start_time"]))
+            for item in recommendations.values()
+            if current_week is not None
+            and _week_start(str(item["start_time"])) < current_week
+        ]
+        prior_week_incomplete = False
+        if prior_weeks:
+            latest_prior_week = max(prior_weeks)
+            prior_week_incomplete = any(
+                item.get("status") == "pending"
+                and _week_start(str(item["start_time"])) == latest_prior_week
+                for item in recommendations.values()
+            )
+        can_create_weekly_picks = (
+            not current_week_recommendations and not prior_week_incomplete
+        )
+        selected_picks = (
+            {
+                _record_key(game): bet
+                for game, bet in select_weekly_recommendations(games, now)
+            }
+            if can_create_weekly_picks
+            else {}
+        )
 
         for game in games:
             kickoff = datetime.fromisoformat(str(game["start_time"]).replace("Z", "+00:00"))

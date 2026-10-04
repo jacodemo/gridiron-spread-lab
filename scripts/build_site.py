@@ -18,7 +18,6 @@ from gridiron_spread.model import (
 )
 from gridiron_spread.season_record import (
     empty_season_state,
-    select_weekly_recommendations,
     season_record_summary,
 )
 from gridiron_spread.sources import (
@@ -188,8 +187,22 @@ def build_payload(
         }
         games.append(game)
 
-    for game, bet in select_weekly_recommendations(games, generated_at):
-        game["recommendation"] = bet
+    saved_recommendations = {
+        str(item.get("event_id")): item
+        for item in state.get("recommendations", [])
+        if isinstance(item, dict) and item.get("event_id") is not None
+    }
+    for game in games:
+        saved_pick = saved_recommendations.get(str(game.get("event_id")))
+        if saved_pick is None:
+            continue
+        game["recommendation"] = {
+            "side": saved_pick["side"],
+            "team": saved_pick["team"],
+            "spread": saved_pick["spread"],
+            "difference": saved_pick["difference"],
+            "sportsbook": saved_pick.get("sportsbook"),
+        }
 
     week_start = reference_date - timedelta(days=reference_date.weekday())
     week_end = week_start + timedelta(days=6)
