@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -11,6 +11,16 @@ CENTRAL = ZoneInfo("America/Chicago")
 BET_THRESHOLD_POINTS = 3.0
 MIN_WEEKLY_PICKS = 10
 MAX_WEEKLY_PICKS = 15
+
+
+def _to_utc(value: str | datetime) -> datetime:
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def _bet_details(game: dict[str, Any]) -> dict[str, Any] | None:
@@ -153,9 +163,9 @@ def update_season_state(
         final = scores_by_id.get(str(event_id)) if event_id is not None else None
         if item.get("status") != "pending" or final is None:
             continue
-        if final.start_time < datetime.fromisoformat(
-            str(item["start_time"]).replace("Z", "+00:00")
-        ):
+        scheduled_start = _to_utc(item["start_time"])
+        final_start = _to_utc(final.start_time)
+        if final_start < scheduled_start:
             raise ValueError(f"ESPN final event time precedes kickoff for {event_id}")
         item["actual_home_margin"] = final.home_score - final.away_score
         item["final_home_score"] = final.home_score
@@ -267,9 +277,9 @@ def update_season_state(
         final = scores_by_id.get(str(event_id)) if event_id is not None else None
         if item.get("status") != "pending" or final is None:
             continue
-        if final.start_time < datetime.fromisoformat(
-            str(item["start_time"]).replace("Z", "+00:00")
-        ):
+        scheduled_start = _to_utc(item["start_time"])
+        final_start = _to_utc(final.start_time)
+        if final_start < scheduled_start:
             raise ValueError(f"ESPN final event time precedes kickoff for {event_id}")
         home_cover_margin = final.home_score - final.away_score + float(item["home_spread"])
         if item["side"] == "home":
