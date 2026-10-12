@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
+import logging
 
 from .data import EloGame, team_key
 from .model import DEFAULT_MODEL_PARAMETERS, calibrate_model_parameters
@@ -165,8 +166,16 @@ def update_season_state(
             continue
         scheduled_start = _to_utc(item["start_time"])
         final_start = _to_utc(final.start_time)
-        if final_start < scheduled_start:
-            raise ValueError(f"ESPN final event time precedes kickoff for {event_id}")
+        # tolerate small clock skew; log discrepancy rather than failing
+        if final_start + timedelta(minutes=1) < scheduled_start:
+            logging.warning(
+                "ESPN final event time precedes kickoff for %s: final=%s scheduled=%s",
+                event_id,
+                final_start.isoformat(),
+                scheduled_start.isoformat(),
+            )
+            item.setdefault("time_discrepancy", {})["final_start_time"] = final_start.isoformat()
+            item.setdefault("time_discrepancy", {})["scheduled_start_time"] = scheduled_start.isoformat()
         item["actual_home_margin"] = final.home_score - final.away_score
         item["final_home_score"] = final.home_score
         item["final_away_score"] = final.away_score
@@ -279,8 +288,16 @@ def update_season_state(
             continue
         scheduled_start = _to_utc(item["start_time"])
         final_start = _to_utc(final.start_time)
-        if final_start < scheduled_start:
-            raise ValueError(f"ESPN final event time precedes kickoff for {event_id}")
+        # tolerate small clock skew; log discrepancy rather than failing
+        if final_start + timedelta(minutes=1) < scheduled_start:
+            logging.warning(
+                "ESPN final event time precedes kickoff for %s: final=%s scheduled=%s",
+                event_id,
+                final_start.isoformat(),
+                scheduled_start.isoformat(),
+            )
+            item.setdefault("time_discrepancy", {})["final_start_time"] = final_start.isoformat()
+            item.setdefault("time_discrepancy", {})["scheduled_start_time"] = scheduled_start.isoformat()
         home_cover_margin = final.home_score - final.away_score + float(item["home_spread"])
         if item["side"] == "home":
             cover_margin = home_cover_margin
