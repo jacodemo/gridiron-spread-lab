@@ -158,7 +158,7 @@ def update_season_state(
         for item in state.get("model_history", [])
         if isinstance(item, dict)
     }
-    scores_by_id = {game.event_id: game for game in completed_games}
+    scores_by_id = {str(game.event_id): game for game in completed_games}
     for item in model_history.values():
         event_id = item.get("event_id")
         final = scores_by_id.get(str(event_id)) if event_id is not None else None
