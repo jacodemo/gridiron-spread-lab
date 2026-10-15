@@ -175,7 +175,7 @@
       "market_anchor_weight": 0.7,
       "points_per_play_weight": 0.5
     },
-    "reviewed_at": "2026-10-12T16:45:39.513956+00:00",
+    "reviewed_at": "2026-10-15T23:14:34.593436+00:00",
     "status": "warming_up",
     "weekly_review": {
       "completed_games": 34,
@@ -2787,5 +2787,5 @@
     }
   ],
   "season": 2026,
-  "updated_at": "2026-10-15T23:14:03.705939+00:00"
+  "updated_at": "2026-10-15T23:14:34.593436+00:00"
 }
