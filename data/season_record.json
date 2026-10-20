@@ -3,87 +3,90 @@
     "abilenechristian": 1490.0,
     "airforce": 1509.7,
     "akron": 1480.0,
-    "alabama": 1538.03,
-    "appalachianstate": 1489.71,
+    "alabama": 1528.01,
+    "appalachianstate": 1499.17,
     "arizona": 1500.84,
-    "arizonastate": 1500.57,
+    "arizonastate": 1491.91,
     "arkansas": 1472.49,
     "arkansaspinebluff": 1490.0,
     "arkansasstate": 1489.72,
-    "army": 1518.89,
-    "auburn": 1490.55,
-    "ballstate": 1470.35,
+    "army": 1528.35,
+    "auburn": 1502.45,
+    "ballstate": 1480.92,
     "baylor": 1510.29,
     "bethunecookman": 1490.0,
     "boisestate": 1509.47,
-    "bostoncollege": 1490.27,
-    "bowlinggreen": 1490.3,
+    "bostoncollege": 1501.35,
+    "bowlinggreen": 1479.72,
     "bryant": 1490.0,
     "bucknell": 1490.58,
     "buffalo": 1489.98,
-    "byu": 1546.99,
-    "california": 1490.02,
+    "byu": 1557.25,
+    "california": 1481.41,
     "centralmichigan": 1490.86,
+    "charlestonsouthern": 1490.05,
     "charlotte": 1480.85,
-    "clemson": 1501.64,
-    "coastalcarolina": 1470.85,
-    "colorado": 1490.83,
-    "coloradostate": 1480.57,
+    "cincinnati": 1489.97,
+    "clemson": 1511.59,
+    "coastalcarolina": 1461.39,
+    "colorado": 1482.43,
+    "coloradostate": 1470.84,
     "connecticut": 1499.71,
     "delaware": 1498.31,
-    "eastcarolina": 1500.01,
+    "eastcarolina": 1490.02,
     "easternillinois": 1490.0,
     "easternmichigan": 1499.42,
     "easttennesseestate": 1490.29,
-    "florida": 1490.79,
+    "florida": 1501.86,
     "floridaaandm": 1490.3,
+    "floridaatlantic": 1490.54,
     "floridainternational": 1499.71,
-    "floridastate": 1480.6,
+    "floridastate": 1472.52,
     "fresnostate": 1480.56,
     "furman": 1490.0,
-    "georgia": 1557.25,
-    "georgiasouthern": 1490.28,
-    "georgiastate": 1510.0,
+    "georgia": 1545.35,
+    "georgiasouthern": 1500.57,
+    "georgiastate": 1500.0,
     "georgiatech": 1491.13,
     "hawaii": 1490.0,
-    "houston": 1538.87,
+    "houston": 1548.33,
     "howard": 1479.75,
     "idaho": 1490.0,
     "illinois": 1499.99,
-    "indiana": 1555.4,
+    "indiana": 1544.94,
     "indianastate": 1490.0,
     "iowa": 1538.05,
     "iowastate": 1492.97,
     "jacksonvillestate": 1510.57,
-    "jamesmadison": 1510.0,
-    "kansas": 1491.11,
-    "kansasstate": 1509.71,
+    "jamesmadison": 1520.0,
+    "kansas": 1481.64,
+    "kansasstate": 1519.18,
     "kennesawstate": 1479.41,
     "kentstate": 1490.57,
-    "kentucky": 1539.68,
+    "kentucky": 1548.88,
     "lafayette": 1490.0,
     "liberty": 1519.74,
     "longislanduniversity": 1490.0,
     "louisiana": 1490.57,
     "louisianatech": 1490.29,
     "louisville": 1510.53,
-    "lsu": 1519.15,
+    "lsu": 1528.64,
     "marshall": 1490.0,
-    "maryland": 1490.87,
+    "maryland": 1480.38,
     "massachusetts": 1499.42,
     "mcneese": 1490.57,
-    "memphis": 1519.43,
+    "memphis": 1508.33,
     "mercer": 1489.44,
     "merrimack": 1490.0,
-    "miamifl": 1548.32,
+    "miamifl": 1556.39,
     "miamioh": 1500.58,
     "michigan": 1508.88,
-    "michiganstate": 1490.3,
+    "michiganstate": 1480.9,
     "middletennessee": 1500.25,
     "minnesota": 1520.26,
-    "mississippi": 1528.06,
-    "mississippistate": 1501.65,
-    "missouri": 1537.52,
+    "mississippi": 1538.33,
+    "mississippistate": 1492.15,
+    "missouri": 1527.25,
     "missouristate": 1480.86,
     "navy": 1480.01,
     "ncstate": 1491.12,
@@ -98,27 +101,27 @@
     "northernillinois": 1490.0,
     "northerniowa": 1490.57,
     "northtexas": 1500.29,
-    "northwestern": 1510.99,
-    "notredame": 1556.1,
+    "northwestern": 1520.39,
+    "notredame": 1545.83,
     "ohio": 1490.0,
-    "ohiostate": 1539.41,
-    "oklahoma": 1511.66,
-    "oklahomastate": 1520.0,
-    "olddominion": 1500.29,
+    "ohiostate": 1549.87,
+    "oklahoma": 1502.46,
+    "oklahomastate": 1510.54,
+    "olddominion": 1490.0,
     "oregon": 1509.94,
     "oregonstate": 1480.58,
     "pennstate": 1498.35,
-    "pittsburgh": 1528.02,
+    "pittsburgh": 1516.94,
     "portlandstate": 1489.99,
-    "purdue": 1490.85,
+    "purdue": 1481.12,
     "rice": 1480.28,
     "richmond": 1489.71,
-    "rutgers": 1473.81,
+    "rutgers": 1484.3,
     "sacramentostate": 1479.71,
     "samhouston": 1471.41,
     "sandiegostate": 1489.71,
     "sanjosestate": 1490.56,
-    "smu": 1528.32,
+    "smu": 1537.77,
     "southalabama": 1500.58,
     "southcarolina": 1501.41,
     "southern": 1490.29,
@@ -129,58 +132,62 @@
     "tarletonstate": 1510.0,
     "tcu": 1481.12,
     "temple": 1480.56,
-    "tennessee": 1537.25,
+    "tennessee": 1547.27,
     "tennesseestate": 1490.0,
-    "texas": 1528.3,
-    "texasam": 1490.0,
-    "texasstate": 1490.0,
-    "texastech": 1547.47,
+    "texas": 1517.23,
+    "texasam": 1500.29,
+    "texasstate": 1499.73,
+    "texastech": 1556.13,
+    "thecitadel": 1489.71,
     "toledo": 1500.29,
     "troy": 1500.85,
-    "tulane": 1480.83,
+    "tulane": 1491.94,
     "tulsa": 1489.71,
-    "uab": 1500.29,
+    "uab": 1510.28,
     "ualbany": 1490.0,
     "ucdavis": 1490.3,
     "ucf": 1490.56,
-    "ucla": 1510.59,
+    "ucla": 1520.6,
     "unlv": 1500.0,
     "usc": 1545.9,
-    "utah": 1546.96,
+    "utah": 1555.35,
     "utahstate": 1481.64,
     "utahtech": 1490.0,
     "utep": 1480.86,
     "utsa": 1510.85,
     "vanderbilt": 1481.9,
     "villanova": 1489.71,
-    "virginia": 1509.43,
+    "virginia": 1499.98,
     "virginiatech": 1510.26,
-    "wakeforest": 1538.6,
-    "washington": 1500.46,
+    "wakeforest": 1547.21,
+    "washington": 1510.18,
     "washingtonstate": 1470.03,
     "westernkentucky": 1491.64,
     "westernmichigan": 1500.3,
     "westgeorgia": 1490.0,
-    "westvirginia": 1498.89,
-    "wisconsin": 1511.11,
+    "westvirginia": 1508.92,
+    "wisconsin": 1501.09,
     "wyoming": 1510.02,
     "youngstownstate": 1490.0
   },
   "model_calibration": {
+    "baseline_validation_mae": 14.235,
+    "calibrated_validation_mae": 14.379,
     "minimum_observations": 40,
-    "observations": 34,
+    "observations": 63,
     "parameters": {
       "elo_weight": 0.5,
       "intercept": 0.0,
       "market_anchor_weight": 0.7,
       "points_per_play_weight": 0.5
     },
-    "reviewed_at": "2026-10-15T23:14:34.593436+00:00",
-    "status": "warming_up",
+    "reviewed_at": "2026-10-20T17:54:34.047029+00:00",
+    "status": "unchanged",
+    "validation_games": 12,
     "weekly_review": {
-      "completed_games": 34,
-      "mae": 11.253,
-      "week_start": "2026-10-05"
+      "completed_games": 29,
+      "mae": 12.972,
+      "week_start": "2026-10-12"
     }
   },
   "model_history": [
@@ -1273,12 +1280,12 @@
       "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 13,
       "away_team": "East Carolina",
       "elo_home_margin": 0.0,
       "event_id": "401862800",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 17,
+      "final_home_score": 30,
       "home_team": "UAB",
       "market_home_margin": -5.5,
       "parameters": {
@@ -1290,15 +1297,15 @@
       "points_per_play_home_margin": -1.4,
       "predicted_home_margin": -4.1,
       "start_time": "2026-10-15T23:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -8,
       "away_team": "Georgia Southern",
       "elo_home_margin": 0.4,
       "event_id": "401869950",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 23,
+      "final_home_score": 15,
       "home_team": "Old Dominion",
       "market_home_margin": -3.5,
       "parameters": {
@@ -1310,15 +1317,15 @@
       "points_per_play_home_margin": -4.8,
       "predicted_home_margin": -3.1,
       "start_time": "2026-10-15T23:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 39,
       "away_team": "Colorado State",
       "elo_home_margin": 0.4,
       "event_id": "401860923",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 27,
+      "final_home_score": 66,
       "home_team": "Texas State",
       "market_home_margin": 14.5,
       "parameters": {
@@ -1330,15 +1337,15 @@
       "points_per_play_home_margin": -0.6,
       "predicted_home_margin": 10.1,
       "start_time": "2026-10-16T00:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 14,
       "away_team": "Memphis",
       "elo_home_margin": -1.5,
       "event_id": "401862801",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 17,
+      "final_home_score": 31,
       "home_team": "Tulane",
       "market_home_margin": -6.5,
       "parameters": {
@@ -1350,15 +1357,15 @@
       "points_per_play_home_margin": -10.3,
       "predicted_home_margin": -6.3,
       "start_time": "2026-10-16T23:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -12,
       "away_team": "Washington",
       "elo_home_margin": -0.4,
       "event_id": "401858493",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 38,
+      "final_home_score": 26,
       "home_team": "Purdue",
       "market_home_margin": 3.5,
       "parameters": {
@@ -1370,15 +1377,15 @@
       "points_per_play_home_margin": -1.2,
       "predicted_home_margin": 2.2,
       "start_time": "2026-10-17T00:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -3,
       "away_team": "App State",
       "elo_home_margin": -0.8,
       "event_id": "401869844",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 35,
+      "final_home_score": 32,
       "home_team": "Coastal Carolina",
       "market_home_margin": -1.5,
       "parameters": {
@@ -1390,15 +1397,15 @@
       "points_per_play_home_margin": -2.2,
       "predicted_home_margin": -1.5,
       "start_time": "2026-10-17T00:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -4,
       "away_team": "Ohio State",
       "elo_home_margin": 0.6,
       "event_id": "401858488",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 19,
+      "final_home_score": 15,
       "home_team": "Indiana",
       "market_home_margin": -3.5,
       "parameters": {
@@ -1410,15 +1417,15 @@
       "points_per_play_home_margin": -3.3,
       "predicted_home_margin": -2.8,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -3,
       "away_team": "Florida",
       "elo_home_margin": 1.5,
       "event_id": "401856724",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 27,
+      "final_home_score": 24,
       "home_team": "Texas",
       "market_home_margin": 11.5,
       "parameters": {
@@ -1430,15 +1437,15 @@
       "points_per_play_home_margin": 5.0,
       "predicted_home_margin": 9.0,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 31,
       "away_team": "Mississippi State",
       "elo_home_margin": 0.7,
       "event_id": "401856720",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 0,
+      "final_home_score": 31,
       "home_team": "LSU",
       "market_home_margin": 15.5,
       "parameters": {
@@ -1450,15 +1457,15 @@
       "points_per_play_home_margin": 3.7,
       "predicted_home_margin": 11.5,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 10,
       "away_team": "Virginia",
       "elo_home_margin": 0.8,
       "event_id": "401858268",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 13,
+      "final_home_score": 23,
       "home_team": "SMU",
       "market_home_margin": 9.5,
       "parameters": {
@@ -1470,15 +1477,15 @@
       "points_per_play_home_margin": -1.1,
       "predicted_home_margin": 6.6,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -3,
       "away_team": "Northwestern",
       "elo_home_margin": -0.8,
       "event_id": "401858491",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 24,
+      "final_home_score": 21,
       "home_team": "Michigan State",
       "market_home_margin": -7.0,
       "parameters": {
@@ -1490,15 +1497,15 @@
       "points_per_play_home_margin": -12.2,
       "predicted_home_margin": -6.8,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 3,
       "away_team": "Cincinnati",
       "elo_home_margin": -0.0,
       "event_id": "401856829",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 42,
+      "final_home_score": 45,
       "home_team": "West Virginia",
       "market_home_margin": 1.5,
       "parameters": {
@@ -1510,15 +1517,15 @@
       "points_per_play_home_margin": -2.4,
       "predicted_home_margin": 0.7,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 11,
       "away_team": "Kansas",
       "elo_home_margin": 0.7,
       "event_id": "401856830",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 24,
+      "final_home_score": 35,
       "home_team": "Kansas State",
       "market_home_margin": 4.5,
       "parameters": {
@@ -1530,15 +1537,15 @@
       "points_per_play_home_margin": 0.0,
       "predicted_home_margin": 3.3,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 6,
       "away_team": "Pittsburgh",
       "elo_home_margin": -1.5,
       "event_id": "401858267",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 21,
+      "final_home_score": 27,
       "home_team": "Boston College",
       "market_home_margin": -6.5,
       "parameters": {
@@ -1550,15 +1557,15 @@
       "points_per_play_home_margin": -9.7,
       "predicted_home_margin": -6.2,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 32,
       "away_team": "Florida Atlantic",
       "elo_home_margin": 0.8,
       "event_id": "401862802",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 24,
+      "final_home_score": 56,
       "home_team": "Army",
       "market_home_margin": 2.5,
       "parameters": {
@@ -1570,15 +1577,15 @@
       "points_per_play_home_margin": 0.5,
       "predicted_home_margin": 1.9,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -1,
       "away_team": "Ball State",
       "elo_home_margin": 0.8,
       "event_id": "401866441",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 32,
+      "final_home_score": 31,
       "home_team": "Bowling Green",
       "market_home_margin": 6.5,
       "parameters": {
@@ -1590,15 +1597,15 @@
       "points_per_play_home_margin": 7.5,
       "predicted_home_margin": 5.8,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 27,
       "away_team": "Georgia State",
       "elo_home_margin": 0.0,
       "event_id": "401869957",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 22,
+      "final_home_score": 49,
       "home_team": "James Madison",
       "market_home_margin": 10.5,
       "parameters": {
@@ -1610,15 +1617,15 @@
       "points_per_play_home_margin": 1.1,
       "predicted_home_margin": 7.5,
       "start_time": "2026-10-17T16:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -7,
       "away_team": "Rutgers",
       "elo_home_margin": 0.7,
       "event_id": "401858489",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 37,
+      "final_home_score": 30,
       "home_team": "Maryland",
       "market_home_margin": 5.5,
       "parameters": {
@@ -1630,7 +1637,7 @@
       "points_per_play_home_margin": -1.3,
       "predicted_home_margin": 3.8,
       "start_time": "2026-10-17T16:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "actual_home_margin": null,
@@ -1753,12 +1760,12 @@
       "status": "pending"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -3,
       "away_team": "Auburn",
       "elo_home_margin": 2.7,
       "event_id": "401856719",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 27,
+      "final_home_score": 24,
       "home_team": "Georgia",
       "market_home_margin": 19.5,
       "parameters": {
@@ -1770,15 +1777,15 @@
       "points_per_play_home_margin": 10.6,
       "predicted_home_margin": 15.6,
       "start_time": "2026-10-17T19:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 16,
       "away_team": "Alabama",
       "elo_home_margin": -0.0,
       "event_id": "401856723",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 10,
+      "final_home_score": 26,
       "home_team": "Tennessee",
       "market_home_margin": -7.5,
       "parameters": {
@@ -1790,15 +1797,15 @@
       "points_per_play_home_margin": -5.0,
       "predicted_home_margin": -6.0,
       "start_time": "2026-10-17T19:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 28,
       "away_team": "Missouri",
       "elo_home_margin": -0.4,
       "event_id": "401856721",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 3,
+      "final_home_score": 31,
       "home_team": "Ole Miss",
       "market_home_margin": 5.5,
       "parameters": {
@@ -1810,15 +1817,15 @@
       "points_per_play_home_margin": -1.5,
       "predicted_home_margin": 3.6,
       "start_time": "2026-10-17T19:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 28,
       "away_team": "Arizona State",
       "elo_home_margin": 1.9,
       "event_id": "401856828",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 25,
+      "final_home_score": 53,
       "home_team": "Texas Tech",
       "market_home_margin": 15.5,
       "parameters": {
@@ -1830,7 +1837,7 @@
       "points_per_play_home_margin": 13.6,
       "predicted_home_margin": 13.2,
       "start_time": "2026-10-17T19:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "actual_home_margin": null,
@@ -2033,12 +2040,12 @@
       "status": "pending"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 8,
       "away_team": "Florida State",
       "elo_home_margin": 2.7,
       "event_id": "401858263",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 35,
+      "final_home_score": 43,
       "home_team": "Miami (FL)",
       "market_home_margin": 21.5,
       "parameters": {
@@ -2050,7 +2057,7 @@
       "points_per_play_home_margin": 15.4,
       "predicted_home_margin": 17.8,
       "start_time": "2026-10-17T23:00:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "actual_home_margin": null,
@@ -2093,12 +2100,12 @@
       "status": "pending"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 3,
       "away_team": "Oklahoma State",
       "elo_home_margin": 0.8,
       "event_id": "401856831",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 32,
+      "final_home_score": 35,
       "home_team": "Houston",
       "market_home_margin": 4.5,
       "parameters": {
@@ -2110,15 +2117,15 @@
       "points_per_play_home_margin": 2.3,
       "predicted_home_margin": 3.6,
       "start_time": "2026-10-17T23:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -8,
       "away_team": "Kentucky",
       "elo_home_margin": -1.1,
       "event_id": "401856722",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 21,
+      "final_home_score": 13,
       "home_team": "Oklahoma",
       "market_home_margin": 6.5,
       "parameters": {
@@ -2130,15 +2137,15 @@
       "points_per_play_home_margin": 1.9,
       "predicted_home_margin": 4.7,
       "start_time": "2026-10-17T23:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 4,
       "away_team": "Notre Dame",
       "elo_home_margin": -0.4,
       "event_id": "401856809",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 24,
+      "final_home_score": 28,
       "home_team": "BYU",
       "market_home_margin": -10.5,
       "parameters": {
@@ -2150,15 +2157,15 @@
       "points_per_play_home_margin": -10.2,
       "predicted_home_margin": -8.9,
       "start_time": "2026-10-17T23:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": 10,
       "away_team": "Wisconsin",
       "elo_home_margin": -0.0,
       "event_id": "401858494",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 7,
+      "final_home_score": 17,
       "home_team": "UCLA",
       "market_home_margin": 2.5,
       "parameters": {
@@ -2170,7 +2177,7 @@
       "points_per_play_home_margin": 4.6,
       "predicted_home_margin": 2.4,
       "start_time": "2026-10-17T23:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "actual_home_margin": null,
@@ -2253,12 +2260,12 @@
       "status": "pending"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -3,
       "away_team": "Utah",
       "elo_home_margin": -2.2,
       "event_id": "401856833",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 27,
+      "final_home_score": 24,
       "home_team": "Colorado",
       "market_home_margin": -15.5,
       "parameters": {
@@ -2270,15 +2277,15 @@
       "points_per_play_home_margin": -20.3,
       "predicted_home_margin": -14.2,
       "start_time": "2026-10-18T02:15:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
-      "actual_home_margin": null,
+      "actual_home_margin": -34,
       "away_team": "Wake Forest",
       "elo_home_margin": -1.9,
       "event_id": "401858269",
-      "final_away_score": null,
-      "final_home_score": null,
+      "final_away_score": 41,
+      "final_home_score": 7,
       "home_team": "California",
       "market_home_margin": -9.5,
       "parameters": {
@@ -2290,7 +2297,7 @@
       "points_per_play_home_margin": -11.2,
       "predicted_home_margin": -8.6,
       "start_time": "2026-10-18T02:30:00+00:00",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "actual_home_margin": null,
@@ -2787,5 +2794,5 @@
     }
   ],
   "season": 2026,
-  "updated_at": "2026-10-15T23:14:34.593436+00:00"
+  "updated_at": "2026-10-20T17:54:34.047029+00:00"
 }
